@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Chauffes">
+<meta name="theme-color" content="#2f6b45">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Journal de chauffes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout : une colonne étroite, en-tête collant ; accueil = liste des chauffes ; une chauffe = 4 onglets. Grosses zones tactiles. */
+:root{
+  --bg:#eef1ec; --surface:#ffffff; --sunk:#e3e8e1; --line:#cfd6cc;
+  --fg:#1d2620; --muted:#5d6a61; --accent:#2f6b45; --accent-ink:#ffffff; --accent-soft:#d8e9dd;
+  --warn:#9a5a06; --warn-soft:#f6e6c9; --bad:#a3322a; --bad-soft:#f5dcd9;
+  --s-in:#1f7a45; --s-ext:#2f6fc0;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#141a16; --surface:#1d2520; --sunk:#252f28; --line:#36433a;
+  --fg:#e4ebe5; --muted:#9caaa0; --accent:#6fbf8a; --accent-ink:#0f1a13; --accent-soft:#24402e;
+  --warn:#e3a54a; --warn-soft:#3a2d17; --bad:#ec8a80; --bad-soft:#3d2220;
+  --s-in:#3fa866; --s-ext:#5b8fe0; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 8px;display:grid;gap:10px}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.title-row .left{display:flex;align-items:center;gap:8px;min-width:0}
+h1{font-family:var(--f-display);font-weight:700;font-size:28px;letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance;overflow-wrap:anywhere}
+.back{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;min-width:40px;min-height:40px;font:700 18px var(--f-body);cursor:pointer;flex:0 0 auto}
+.daybadge{font-family:var(--f-mono);font-size:14px;color:var(--muted);white-space:nowrap}
+.daybadge b{color:var(--fg);font-weight:500}
+.progress{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.progress span{display:block;height:100%;background:var(--accent)}
+.endzone{font-size:13px;color:var(--muted)}
+nav.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);padding:4px;border-radius:10px}
+nav.tabs button{font:600 15px var(--f-body);border:0;background:transparent;color:var(--muted);padding:9px 2px;border-radius:7px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+section.panel{display:grid;gap:16px;padding-top:8px}
+h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:4px 0 0}
+h3{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0}
+.note{font-size:14px;color:var(--muted);margin:0}
+.banner{padding:10px 12px;border-radius:8px;font-size:14px;background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:14px;min-width:0}
+.field{display:grid;gap:6px;min-width:0}
+.field>label,.field>.lab,.lab{font-weight:600;font-size:15px}
+.hint{font-size:13px;color:var(--muted);font-weight:400}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{width:100%;font:16px var(--f-body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 10px;min-height:46px}
+.num{font-family:var(--f-mono)!important;font-size:18px!important}
+textarea{min-height:76px;resize:vertical}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{flex:1 1 auto;min-height:44px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:8px 10px;font:600 15px var(--f-body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.seg button.alert[aria-pressed="true"]{background:var(--bad-soft);border-color:var(--bad)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,label:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.primary{min-height:50px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:700 17px var(--f-body);cursor:pointer;padding:0 16px}
+.primary:disabled{opacity:.5}
+.ghost{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:8px;padding:10px 12px;font:600 15px var(--f-body);cursor:pointer;min-height:44px;text-align:center}
+.danger{color:var(--bad);border-color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 auto}
+.status{font-size:14px;min-height:20px;color:var(--muted)}
+.status.ok{color:var(--accent)} .status.err{color:var(--bad)}
+.alertbox{border-radius:10px;padding:12px 14px;background:var(--bad-soft);border:1px solid var(--bad);display:grid;gap:4px;font-size:15px}
+.list{display:grid;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px;text-align:left;font:inherit;color:inherit;width:100%}
+button.item{cursor:pointer}
+.item.empty{background:transparent;border-style:dashed;color:var(--muted)}
+.hhead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.hhead .d{font-weight:700}
+.mono{font-family:var(--f-mono);font-size:14px;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--fg)}
+.chip.al{background:var(--bad-soft);color:var(--bad)}
+.chip.ok{background:var(--accent-soft)}
+.rem{font-size:14px;color:var(--muted);overflow-wrap:anywhere;white-space:pre-line}
+.who{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.dates{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.dates button{flex:0 0 auto;min-width:54px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 4px;cursor:pointer;font:500 13px var(--f-mono);display:grid;gap:1px;justify-items:center}
+.dates button small{font:600 11px var(--f-body);color:var(--muted);letter-spacing:.04em}
+.dates button.done{border-color:var(--accent)}
+.dates button.done small{color:var(--accent)}
+.dates button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dates button[aria-pressed="true"] small{color:var(--accent-ink)}
+.rel{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--sunk);border-radius:8px;padding:8px 10px;font:500 15px var(--f-mono);font-variant-numeric:tabular-nums}
+.rel span{min-width:0}
+.rel small{font-family:var(--f-body);color:var(--muted);font-size:12px;margin-left:6px}
+.rel button{border:0;background:transparent;color:var(--muted);font:600 14px var(--f-body);padding:4px 8px;cursor:pointer}
+.rel.none{background:transparent;border:1px dashed var(--line);font-family:var(--f-body);color:var(--muted)}
+.others{border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.photos:empty{display:none}
+.photos button{padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--sunk);cursor:pointer;max-width:100%}
+.photos img{width:100%;height:100%;object-fit:cover;display:block}
+.filebtn{display:inline-flex;align-items:center;justify-content:center}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+.viewer{position:fixed;inset:0;z-index:50;background:rgba(10,14,11,.94);display:grid;grid-template-rows:auto 1fr auto;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.viewer img{width:100%;height:100%;object-fit:contain;min-height:0}
+.vbar{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#e8eee9;font-size:14px}
+.vbtn{color:#e8eee9;border-color:#5b6a60}
+.vbtn.danger{color:#f3a49c;border-color:#f3a49c}
+.ctitle{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+#chart{display:block;width:100%;height:auto;touch-action:pan-y}
+#chart text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+#chart .lbl{fill:var(--fg);font-size:11.5px}
+#chart .zone{fill:var(--accent-soft);opacity:.7}
+#chart .zonet{font-family:var(--f-body);font-size:11px;fill:var(--muted)}
+#chart .grid{stroke:var(--line);stroke-width:1}
+#chart .hit{fill:transparent;cursor:pointer}
+.tip{font-size:14px;color:var(--muted);min-height:20px}
+.tip b{color:var(--fg)}
+.proto{display:grid;gap:10px}
+.proto .pi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:8px}
+dl.kv{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
+dl.kv dt{color:var(--muted);font-size:13px;letter-spacing:.03em;text-transform:uppercase;padding-top:2px}
+dl.kv dd{margin:0}
+.al{color:var(--bad)}
+ul.plain{margin:0;padding-left:20px;display:grid;gap:4px}
+.sblock{display:grid;gap:6px}
+.sblock h4{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.sblock p{margin:0;font-size:15px}
+.steps{margin:0;padding-left:20px;display:grid;gap:6px;font-size:15px}
+.chauffecard{display:grid;gap:8px}
+.chauffecard .meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted)}
+.lotsTable{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.lotsTable th,.lotsTable td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.lotsTable th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.scrollx{overflow-x:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:60;max-width:90vw;text-align:center}
+.confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Photo">
+  <div class="vbar"><span id="vcap"></span><button type="button" class="ghost vbtn" id="vclose">Fermer</button></div>
+  <img id="vimg" alt="">
+  <div class="vbar" id="vdelbar"><button type="button" class="ghost vbtn danger" id="vdel">Supprimer la photo</button></div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+'use strict';
+/* ====================================================================
+   Journal de chauffes — application hors ligne (PWA)
+   Données : IndexedDB, sur l'appareil. Partage : fichiers .json fusionnés.
+   Chaque note = une « entrée » avec id unique, auteur, majLe et
+   éventuellement supprime:true (pour que les suppressions se partagent).
+   ==================================================================== */
+const APP_VERSION = '1.0.0';
+const SEED_CHAUFFE1 = {"chauffe": {"id": "chauffe-1-vivero-richter-2026", "nom": "Chauffe 1 · Vivero Richter", "duree": 19, "finDe": 17, "finA": 19, "debut": "2026-10-02", "notes": "« 1ª calefacion » du tableau de production 2026/2027 : 27 lots, 990 300 plants. Palox couverts d'une couverture humide et d'un plastique. Mise en eau de tous les palox le 06/10.", "lots": [{"lot": "1", "variete": "CAB", "pg": "SO4", "qte": 102300, "palox": 19}, {"lot": "2", "variete": "SAU", "pg": "SO4", "qte": 57200, "palox": 11}, {"lot": "3", "variete": "SAU", "pg": "SO4", "qte": 32200, "palox": 6}, {"lot": "4", "variete": "SAU", "pg": "SO4", "qte": 21100, "palox": 4}, {"lot": "5", "variete": "SAU", "pg": "SO4", "qte": 25700, "palox": 5}, {"lot": "6", "variete": "CHA", "pg": "SO4", "qte": 60500, "palox": 11}, {"lot": "7", "variete": "TIO", "pg": "SO4", "qte": 12700, "palox": 3}, {"lot": "8", "variete": "VIO", "pg": "SO4", "qte": 13700, "palox": 2}, {"lot": "9", "variete": "SAU", "pg": "5BB", "qte": 212200, "palox": 38}, {"lot": "10", "variete": "SAU", "pg": "5BB", "qte": 43400, "palox": 8}, {"lot": "11", "variete": "SAU", "pg": "5BB", "qte": 29900, "palox": 5}, {"lot": "12", "variete": "SAU", "pg": "5BB", "qte": 31500, "palox": 6}, {"lot": "13", "variete": "CHA", "pg": "SO4", "qte": 14700, "palox": 3}, {"lot": "14", "variete": "SAU", "pg": "5BB", "qte": 33300, "palox": 7}, {"lot": "16", "variete": "CHA", "pg": "SO4", "qte": 15100, "palox": 2}, {"lot": "17", "variete": "CHA", "pg": "SO4", "qte": 19100, "palox": 3}, {"lot": "18", "variete": "PIN", "pg": "SO4", "qte": 2200, "palox": 1}, {"lot": "19", "variete": "ALBA", "pg": "SO4", "qte": 6200, "palox": 1}, {"lot": "20", "variete": "ALBA", "pg": "R110", "qte": 12200, "palox": 3}, {"lot": "21", "variete": "MER", "pg": "R110", "qte": 36400, "palox": 6}, {"lot": "22", "variete": "MER", "pg": "R110", "qte": 38000, "palox": 8}, {"lot": "23", "variete": "CHA", "pg": "R110", "qte": 22000, "palox": null}, {"lot": "24", "variete": "CAB", "pg": "R110", "qte": 8000, "palox": null}, {"lot": "25", "variete": "CAM", "pg": "R110", "qte": 14400, "palox": null}, {"lot": "26", "variete": "SAU", "pg": "R110", "qte": 21800, "palox": null}, {"lot": "27", "variete": "TIO", "pg": "R110", "qte": 92500, "palox": 17}, {"lot": "28", "variete": "CHA", "pg": "R110", "qte": 12000, "palox": 3}], "creeLe": "2026-10-02T12:00:00.000Z", "creePar": "Raphaël"}, "entrees": [{"id": "seed-rel-1-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "heure": "13:46", "tExt": 15, "tInt": 15.5, "creeLe": "2026-10-06T17:15:28.618Z"}, {"id": "seed-obs-1", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "remarque": "Lancement de la chauffe. Relevé 15 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:28.618Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-2-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "heure": "13:46", "tExt": 18, "tInt": 18, "creeLe": "2026-10-06T17:15:34.506Z"}, {"id": "seed-obs-2", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "remarque": "Relevé 18 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:34.506Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-3-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "heure": "13:47", "tExt": 22, "tInt": 22, "creeLe": "2026-10-06T17:15:40.124Z"}, {"id": "seed-obs-3", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "remarque": "Relevé 23 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:40.124Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-4-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "heure": "13:48", "tExt": 26, "tInt": 27, "creeLe": "2026-10-06T17:15:45.624Z"}, {"id": "seed-obs-4", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "remarque": "Relevé 26 °C (lieu de mesure à préciser). Contrôle des plants avec Gérard.", "creeLe": "2026-10-06T17:15:45.624Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-5-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "10:00", "tExt": 28, "tInt": 29, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-rel-5-1", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "14:11", "tExt": 26.5, "tInt": 27.5, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-obs-5", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "remarque": "Mise en eau de tous les palox. Environ 29 °C dans les palox. Palox couverts (couverture humide + plastique).\nBaisse de température du a l’eau dans les palox", "creeLe": "2026-10-06T17:39:48.450Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}]};
+
+/* ---------- Valeurs des observations ---------- */
+const OPTS = {
+  gouttes:{label:'Gouttes', titre:'Gouttes sur la cire', opts:['Oui','Peu','Non','Ruissellement'], alert:['Non','Ruissellement']},
+  couverture:{label:'Couverture', titre:'Couverture humide', opts:['Bien humide','À réhumidifier','Sèche'], alert:['À réhumidifier','Sèche']},
+  racines:{label:'Racines', titre:'Racines', opts:['Aucune','Début','Développées'], alert:[]},
+  cal:{label:'Cal', titre:'Cal au point de greffe', facultatif:true, opts:['Pas visible','Début','Tout autour',"D'un seul côté",'Brun ou mou'], alert:["D'un seul côté",'Brun ou mou']},
+  bois:{label:'Bois', titre:'Bois', opts:['Humide','Sec','Détrempé'], alert:['Sec','Détrempé']},
+  odeur:{label:'Odeur', titre:'Odeur de la base', opts:['Normale','Anormale'], alert:['Anormale']}
+};
+const OBS_KEYS = Object.keys(OPTS);
+const LOT_KEYS = ['racines','cal','bois','odeur'];
+const DEFAULT_PROTO = [
+  {t:'Températures', c:"Relever l'extérieur des palox (air) et l'intérieur des palox.", n:'Une montée progressive puis une température stable.', a:"Changement brusque d'un jour à l'autre."},
+  {t:'Couverture', c:'Soulever le plastique, toucher la couverture.', n:'Couverture bien humide.', a:'Couverture sèche : à réhumidifier.'},
+  {t:'A. Humidité', c:'Regarder les petites gouttes / la condensation sur la cire.', n:'Des gouttes présentes.', a:"Pas de gouttes (trop sec) ou ruissellement (trop d'eau)."},
+  {t:'B. Racines', c:'Sortir quelques plants du palox.', n:'Des racines qui apparaissent puis se développent.', a:'Aucune racine, ou un lot en retard sur les autres.'},
+  {t:'C. Bois', c:'Regarder et toucher le bois.', n:'Bois humide.', a:'Bois sec, ou détrempé / ramolli.'},
+  {t:'Cal (facultatif)', c:'Regarder la ligne de greffe sur les plants sortis du palox.', n:'Un bourrelet blanc-crème qui se forme tout autour.', a:"Cal d'un seul côté, brun ou mou."},
+  {t:'D. Odeur', c:'Sentir la base (le « cul ») du plant.', n:'Odeur normale de bois frais.', a:'Odeur anormale (moisi, aigre) : risque de moisissure, à signaler.'}
+];
+const DEFAULT_PROTO_INTRO = "Protocole appris avec Gérard. Les palox sont couverts d'une couverture humide et d'un plastique pour garder un maximum d'humidité.";
+
+/* ---------- Petits outils ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+const nowIso = () => new Date().toISOString();
+const num = v => { const t=String(v==null?'':v).trim().replace(',','.').replace(/[^0-9.\-]/g,''); if(t===''||t==='-'||t==='.') return null; const n=Number(t); return Number.isFinite(n)?n:null; };
+const hhmm = () => { const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); };
+const fmtH = h => h ? h.replace(':','h') : '';
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.hidden=true; },2600); }
+const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const JOURS=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+function dayDate(ch, n){ if(!ch.debut) return null; const d=new Date(ch.debut+'T12:00:00'); if(isNaN(d)) return null; d.setDate(d.getDate()+n-1); return d; }
+function dayLabel(ch, n){ const d=dayDate(ch,n); return d ? JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()] : 'Jour '+n; }
+function dayShort(ch, n){ const d=dayDate(ch,n); return d ? String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0') : ''; }
+
+/* ---------- Stockage IndexedDB ---------- */
+const DB = (function(){
+  let p=null;
+  function open(){ if(p) return p; p=new Promise((ok,ko)=>{ const r=indexedDB.open('journal-chauffes',1);
+    r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('chauffes',{keyPath:'id'}); d.createObjectStore('entrees',{keyPath:'id'}); d.createObjectStore('photos'); d.createObjectStore('reglages'); };
+    r.onsuccess=()=>ok(r.result); r.onerror=()=>ko(r.error); }); return p; }
+  function run(store, mode, fn){ return open().then(d=>new Promise((ok,ko)=>{ const t=d.transaction(store,mode); const s=t.objectStore(store); let res; const r=fn(s); if(r) r.onsuccess=()=>{ res=r.result; }; t.oncomplete=()=>ok(res); t.onerror=()=>ko(t.error); t.onabort=()=>ko(t.error); })); }
+  return {
+    all:store=>run(store,'readonly',s=>s.getAll()),
+    get:(store,key)=>run(store,'readonly',s=>s.get(key)),
+    put:(store,val,key)=>run(store,'readwrite',s=>key===undefined?s.put(val):s.put(val,key)),
+    del:(store,key)=>run(store,'readwrite',s=>s.delete(key)),
+    putMany:(store,vals)=>open().then(d=>new Promise((ok,ko)=>{ const t=d.transaction(store,'readwrite'); const s=t.objectStore(store); vals.forEach(v=>s.put(v)); t.oncomplete=()=>ok(); t.onerror=()=>ko(t.error); }))
+  };
+})();
+
+/* ---------- État ---------- */
+const S = { chauffes:[], entrees:[], me:null, prevenir:'Gérard', proto:DEFAULT_PROTO, protoIntro:DEFAULT_PROTO_INTRO, seedHidden:false,
+            view:'home', chauffeId:null, tab:'jour', jour:1, courbe:'both', editingProto:false };
+
+async function loadAll(){
+  S.chauffes=(await DB.all('chauffes'))||[];
+  S.entrees=(await DB.all('entrees'))||[];
+  S.me=await DB.get('reglages','me')||null;
+  S.prevenir=(await DB.get('reglages','prevenir'))||'Gérard';
+  S.proto=(await DB.get('reglages','proto'))||DEFAULT_PROTO;
+  S.protoIntro=(await DB.get('reglages','protoIntro'))||DEFAULT_PROTO_INTRO;
+  S.seedHidden=!!(await DB.get('reglages','seedHidden'));
+  try{ const v=localStorage.getItem('chauffes:courbe'); if(['in','ext','both'].includes(v)) S.courbe=v; }catch(e){}
+}
+const liveChauffes = () => S.chauffes.filter(c=>!c.supprime).sort((a,b)=>(a.archive?1:0)-(b.archive?1:0) || (b.creeLe||'').localeCompare(a.creeLe||''));
+const curChauffe = () => S.chauffes.find(c=>c.id===S.chauffeId);
+const entriesOf = (cid, type) => S.entrees.filter(e=>!e.supprime && e.chauffeId===cid && (!type || e.type===type));
+const authorName = e => e.auteurNom || 'Inconnu';
+const isMine = e => S.me && e.auteurId===S.me.id;
+
+async function saveEntry(e){ e.majLe=nowIso(); await DB.put('entrees',e); const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); }
+async function saveChauffe(c){ c.majLe=nowIso(); await DB.put('chauffes',c); const i=S.chauffes.findIndex(x=>x.id===c.id); if(i>=0) S.chauffes[i]=c; else S.chauffes.push(c); }
+async function removeEntry(e){ const t=Object.assign({},e,{supprime:true}); await saveEntry(t); }
+
+/* ---------- Données dérivées d'une chauffe ---------- */
+function myObs(cid, jour){ return entriesOf(cid,'obs').find(e=>e.jour===jour && isMine(e)); }
+function dayEntries(cid, jour){ return S.entrees.filter(e=>!e.supprime && e.chauffeId===cid && e.jour===jour); }
+function dayFilled(cid, jour){ return dayEntries(cid,jour).some(e=>e.type==='releve'||e.type==='photo'||(e.type==='obs'&&(OBS_KEYS.some(k=>e[k])||e.remarque))); }
+function alertsOf(r){ return OBS_KEYS.filter(k=>r[k] && OPTS[k].alert.includes(r[k])).map(k=>OPTS[k].label+' : '+r[k]); }
+function lastDay(ch){ let n=0; for(let j=1;j<=ch.duree;j++) if(dayFilled(ch.id,j)) n=j; return n; }
+function chauffeAlerts(ch){ return entriesOf(ch.id).filter(e=>(e.type==='obs'||e.type==='lot') && alertsOf(e).length).length; }
+function releves(cid){ return entriesOf(cid,'releve').sort((a,b)=>a.jour-b.jour || (a.heure||'').localeCompare(b.heure||'')); }
+
+/* ---------- Photos ---------- */
+const photoUrls={};
+function setPhoto(img,id){ if(photoUrls[id]){ img.src=photoUrls[id]; return; } DB.get('photos',id).then(b=>{ if(b){ photoUrls[id]=URL.createObjectURL(b); img.src=photoUrls[id]; } }).catch(()=>{}); }
+async function shrink(file){
+  const url=URL.createObjectURL(file);
+  try{ const img=await new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ko; i.src=url; });
+    const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)); const c=document.createElement('canvas');
+    c.width=Math.round(img.naturalWidth*k); c.height=Math.round(img.naturalHeight*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return await new Promise(ok=>c.toBlob(b=>ok(b||file),'image/jpeg',0.82));
+  } catch(e){ return file; } finally{ URL.revokeObjectURL(url); }
+}
+async function storePhotos(files){ const ids=[]; for(const f of files){ const b=await shrink(f); const id=uid(); await DB.put('photos',b,id); ids.push(id); } return ids; }
+let viewerCtx=null, viewerConfirm=false;
+function openViewer(photoId, caption, onDelete){
+  viewerCtx={photoId,onDelete}; viewerConfirm=false; setPhoto($('vimg'),photoId); $('vcap').textContent=caption;
+  $('vdelbar').hidden=!onDelete; $('vdel').textContent='Supprimer la photo'; $('viewer').hidden=false;
+}
+$('vclose').addEventListener('click',()=>{ $('viewer').hidden=true; viewerCtx=null; });
+$('vdel').addEventListener('click',async()=>{ if(!viewerCtx) return; if(!viewerConfirm){ viewerConfirm=true; $('vdel').textContent='Toucher encore pour confirmer'; return; } const c=viewerCtx; $('viewer').hidden=true; viewerCtx=null; await c.onDelete(); });
+
+/* ====================================================================
+   RENDU
+   ==================================================================== */
+const app=$('app');
+function render(){
+  if(!S.me) return renderWelcome();
+  if(S.view==='new' || S.view==='edit') return renderChauffeForm();
+  if(S.view==='settings') return renderSettings();
+  if(S.view==='chauffe' && curChauffe()) return renderChauffe();
+  S.view='home'; renderHome();
+}
+function go(view, extra){ Object.assign(S,{view},extra||{}); render(); window.scrollTo({top:0}); }
+
+/* ---------- Premier lancement ---------- */
+function renderWelcome(){
+  app.innerHTML=`<header class="top"><div class="title-row"><h1>Journal de chauffes</h1></div></header>
+  <section class="panel">
+    <div class="card">
+      <h2 style="margin:0">Bienvenue</h2>
+      <p class="note">Cette application fonctionne sans internet : tout est enregistré sur cet appareil. Chaque note est signée avec ton prénom, pour que tes collaborateurs sachent qui l'a prise.</p>
+      <div class="field"><label for="w-nom">Ton prénom</label><input id="w-nom" type="text" autocomplete="given-name" placeholder="Raphaël"></div>
+      <button class="primary" id="w-ok" type="button">Commencer</button>
+      <div class="status" id="w-st"></div>
+    </div>
+  </section>`;
+  $('w-ok').onclick=async()=>{ const n=$('w-nom').value.trim(); if(!n){ $('w-st').textContent='Indique ton prénom.'; $('w-st').className='status err'; return; }
+    S.me={id:uid(), nom:n}; await DB.put('reglages',S.me,'me'); try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){} go('home'); };
+}
+
+/* ---------- Accueil ---------- */
+function renderHome(){
+  const list=liveChauffes();
+  const seedAvail = SEED_CHAUFFE1 && !S.chauffes.some(c=>c.id===SEED_CHAUFFE1.chauffe.id) && !S.seedHidden;
+  app.innerHTML=`<header class="top"><div class="title-row"><h1>Journal de chauffes</h1><button class="ghost" id="h-set" type="button" style="flex:0 0 auto">Réglages</button></div></header>
+  <section class="panel">
+    ${seedAvail?`<div class="card"><h3>Chauffe 1 de Raphaël</h3><p class="note">Les relevés et observations de la chauffe 1 (Vivero Richter, octobre 2026), prises par Raphaël, avec la liste des 27 lots, sont prêts à être ajoutés.</p><div class="list"><button class="primary" id="seed-me" type="button">Je suis Raphaël : ajouter à mon nom</button><button class="ghost" id="seed-ok" type="button">Ajouter (notes de Raphaël)</button><button class="ghost" id="seed-no" type="button">Pas maintenant</button></div></div>`:''}
+    <button class="primary" id="h-new" type="button">+ Nouvelle chauffe</button>
+    <div class="list" id="h-list"></div>
+    <div class="card">
+      <h3>Partager avec mes collaborateurs</h3>
+      <p class="note">« Partager mes notes » crée un fichier avec toutes les chauffes et notes de cet appareil, à envoyer par AirDrop, WhatsApp ou mail. « Importer » ajoute les notes reçues aux tiennes, sans rien écraser. Ce fichier sert aussi de sauvegarde : garde-en une copie dans iCloud Drive.</p>
+      <div class="row"><button class="ghost" id="h-share" type="button">Partager mes notes</button><label class="ghost filebtn" for="h-imp">Importer</label><input class="vh" id="h-imp" type="file" accept="application/json,.json"></div>
+      <div class="status" id="h-st"></div>
+    </div>
+    <p class="note" style="text-align:center">Notes signées : ${esc(S.me.nom)} · version ${APP_VERSION}</p>
+  </section>`;
+  const el=$('h-list');
+  if(!list.length) el.innerHTML='<div class="item empty">Aucune chauffe pour l\'instant. Touche « + Nouvelle chauffe » pour commencer.</div>';
+  list.forEach(ch=>{
+    const n=lastDay(ch), al=chauffeAlerts(ch), nb=entriesOf(ch.id).length;
+    const b=document.createElement('button'); b.type='button'; b.className='item chauffecard';
+    b.innerHTML=`<div class="hhead"><span class="d" style="font-size:18px">${esc(ch.nom)}</span><span class="mono">J${n||'–'} / ${ch.duree}</span></div>
+      <div class="progress"><span style="width:${Math.min(100,n/ch.duree*100)}%"></span></div>
+      <div class="meta">${ch.debut?'<span>Début '+esc(dayShort(ch,1))+'</span>':''}<span>${(ch.lots||[]).length} lots</span><span>${nb} note${nb>1?'s':''}</span>${al?'<span class="al">'+al+' alerte'+(al>1?'s':'')+'</span>':''}${ch.archive?'<span>Archivée</span>':''}</div>`;
+    b.onclick=()=>{ const ln=lastDay(ch); go('chauffe',{chauffeId:ch.id, tab:'jour', jour:Math.max(1,ln||1)}); };
+    el.appendChild(b);
+  });
+  $('h-new').onclick=()=>go('new');
+  $('h-set').onclick=()=>go('settings');
+  if(seedAvail){ $('seed-me').onclick=()=>importSeed(true); $('seed-ok').onclick=()=>importSeed(false); $('seed-no').onclick=async()=>{ S.seedHidden=true; await DB.put('reglages',true,'seedHidden'); render(); }; }
+  $('h-share').onclick=()=>exportAll($('h-st'));
+  $('h-imp').onchange=e=>importFile(e,$('h-st'));
+}
+
+const SEED_AUTHOR={id:'auteur-raphael-vivero', nom:'Raphaël'};
+async function importSeed(isMe){
+  const sd=SEED_CHAUFFE1;
+  if(isMe && S.me.id!==SEED_AUTHOR.id){
+    const old=S.me.id; S.me=Object.assign({},S.me,{id:SEED_AUTHOR.id}); await DB.put('reglages',S.me,'me');
+    const mine=S.entrees.filter(e=>e.auteurId===old).map(e=>Object.assign({},e,{auteurId:S.me.id}));
+    if(mine.length){ await DB.putMany('entrees',mine); mine.forEach(e=>{ const i=S.entrees.findIndex(x=>x.id===e.id); S.entrees[i]=e; }); }
+  }
+  const c=JSON.parse(JSON.stringify(sd.chauffe)); c.creeLe=c.creeLe||nowIso();
+  await saveChauffe(c);
+  const list=sd.entrees.map(e=>Object.assign({},e,{auteurId:SEED_AUTHOR.id, auteurNom:isMe?S.me.nom:SEED_AUTHOR.nom, majLe:e.creeLe||'2026-10-06T00:00:00.000Z'}));
+  await DB.putMany('entrees',list); list.forEach(e=>{ const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); });
+  toast('Chauffe 1 ajoutée.'); render();
+}
+
+/* ---------- Créer / modifier une chauffe ---------- */
+let formLots=[];
+function renderChauffeForm(){
+  const editing = S.view==='edit' ? curChauffe() : null;
+  if(!renderChauffeForm._init){ formLots = editing ? JSON.parse(JSON.stringify(editing.lots||[])) : []; renderChauffeForm._init=true; }
+  const c=editing||{nom:'',duree:19,finDe:17,finA:19,debut:'',notes:''};
+  app.innerHTML=`<header class="top"><div class="title-row"><div class="left"><button class="back" id="f-back" type="button" aria-label="Retour">‹</button><h1>${editing?'Modifier la chauffe':'Nouvelle chauffe'}</h1></div></div></header>
+  <section class="panel">
+    <form class="card" id="f-form" autocomplete="off">
+      <div class="field"><label for="f-nom">Nom de la chauffe</label><input id="f-nom" type="text" value="${esc(c.nom)}" placeholder="Chauffe 2 · Vivero Richter"></div>
+      <div class="field"><label for="f-debut">Date de début <span class="hint">(facultatif : les jours afficheront leur date)</span></label><input id="f-debut" type="date" value="${esc(c.debut||'')}"></div>
+      <div class="three">
+        <div class="field"><label for="f-duree">Durée (jours)</label><input id="f-duree" class="num" type="text" inputmode="numeric" value="${c.duree}"></div>
+        <div class="field"><label for="f-de">Fin entre J…</label><input id="f-de" class="num" type="text" inputmode="numeric" value="${c.finDe}"></div>
+        <div class="field"><label for="f-a">… et J</label><input id="f-a" class="num" type="text" inputmode="numeric" value="${c.finA}"></div>
+      </div>
+      <div class="field"><label for="f-notes">Infos sur la chauffe <span class="hint">(facultatif)</span></label><textarea id="f-notes" placeholder="Salle, palox, consignes…">${esc(c.notes||'')}</textarea></div>
+      <div class="field">
+        <span class="lab">Lots de la chauffe <span class="hint">(facultatif)</span></span>
+        <div class="list" id="f-lots"></div>
+        <div class="three">
+          <div class="field"><label for="l-n">N° lot</label><input id="l-n" type="text" inputmode="numeric" placeholder="9"></div>
+          <div class="field"><label for="l-v">Variété</label><input id="l-v" type="text" placeholder="SAU"></div>
+          <div class="field"><label for="l-p">Porte-greffe</label><input id="l-p" type="text" placeholder="5BB"></div>
+        </div>
+        <div class="two">
+          <div class="field"><label for="l-q">Plants <span class="hint">(facult.)</span></label><input id="l-q" class="num" type="text" inputmode="numeric"></div>
+          <div class="field"><label for="l-x">Palox <span class="hint">(facult.)</span></label><input id="l-x" class="num" type="text" inputmode="numeric"></div>
+        </div>
+        <button class="ghost" id="l-add" type="button">+ Ajouter ce lot</button>
+      </div>
+      <button class="primary" type="submit">${editing?'Enregistrer':'Créer la chauffe'}</button>
+      <div class="status" id="f-st"></div>
+    </form>
+    ${editing?`<div class="card"><h3>Archiver ou supprimer</h3><p class="note">Une chauffe archivée reste consultable, en bas de la liste. La suppression retire la chauffe et toutes ses notes de cet appareil.</p>
+      <div class="row"><button class="ghost" id="f-arch" type="button">${editing.archive?'Désarchiver':'Archiver'}</button><button class="ghost danger" id="f-del" type="button">Supprimer la chauffe</button></div><div class="status" id="f-st2"></div></div>`:''}
+  </section>`;
+  const drawLots=()=>{ const el=$('f-lots'); el.innerHTML=''; if(!formLots.length){ el.innerHTML='<div class="item empty">Aucun lot pour l\'instant.</div>'; return; }
+    formLots.forEach((l,i)=>{ const d=document.createElement('div'); d.className='rel'; const s=document.createElement('span');
+      s.textContent='Lot '+l.lot+(l.variete||l.pg?' · '+[l.variete,l.pg].filter(Boolean).join(' / '):'')+(l.qte?' · '+l.qte.toLocaleString('fr-FR')+' pl.':'')+(l.palox?' · '+l.palox+' palox':'');
+      const b=document.createElement('button'); b.type='button'; b.textContent='Retirer'; b.onclick=()=>{ formLots.splice(i,1); drawLots(); }; d.append(s,b); el.appendChild(d); }); };
+  drawLots();
+  $('l-add').onclick=()=>{ const lot=$('l-n').value.trim(); if(!lot){ $('f-st').textContent='Indique au moins le numéro du lot.'; $('f-st').className='status err'; return; }
+    formLots.push({lot, variete:$('l-v').value.trim(), pg:$('l-p').value.trim(), qte:num($('l-q').value), palox:num($('l-x').value)});
+    ['l-n','l-v','l-p','l-q','l-x'].forEach(id=>$(id).value=''); $('f-st').textContent=''; drawLots(); $('l-n').focus(); };
+  $('f-back').onclick=()=>{ renderChauffeForm._init=false; editing?go('chauffe',{tab:'infos'}):go('home'); };
+  $('f-form').onsubmit=async e=>{ e.preventDefault(); const st=$('f-st');
+    const nom=$('f-nom').value.trim(); const duree=Math.round(num($('f-duree').value)||0), de=Math.round(num($('f-de').value)||0), a=Math.round(num($('f-a').value)||0);
+    if(!nom){ st.textContent='Donne un nom à la chauffe.'; st.className='status err'; return; }
+    if(duree<1||duree>90){ st.textContent='La durée doit être entre 1 et 90 jours.'; st.className='status err'; return; }
+    if(de<1||a<de||a>duree){ st.textContent='La fin prévue doit être entre J1 et J'+duree+', avec le premier jour avant le second.'; st.className='status err'; return; }
+    if($('l-n').value.trim()){ $('l-add').click(); }
+    const ch = editing ? Object.assign({},editing) : {id:'ch-'+uid(), creeLe:nowIso(), creePar:S.me.nom};
+    Object.assign(ch,{nom, duree, finDe:de, finA:a, debut:$('f-debut').value||'', notes:$('f-notes').value.trim(), lots:formLots});
+    await saveChauffe(ch); renderChauffeForm._init=false; toast(editing?'Chauffe enregistrée.':'Chauffe créée.');
+    go('chauffe',{chauffeId:ch.id, tab:editing?'infos':'jour', jour:1}); };
+  if(editing){
+    $('f-arch').onclick=async()=>{ const ch=Object.assign({},editing,{archive:!editing.archive}); await saveChauffe(ch); renderChauffeForm._init=false; toast(ch.archive?'Chauffe archivée.':'Chauffe désarchivée.'); go('home'); };
+    let conf=false; $('f-del').onclick=async()=>{ if(!conf){ conf=true; $('f-del').textContent='Toucher encore pour supprimer définitivement'; return; }
+      const ch=Object.assign({},editing,{supprime:true}); await saveChauffe(ch);
+      for(const e of entriesOf(ch.id)) await removeEntry(e);
+      renderChauffeForm._init=false; toast('Chauffe supprimée.'); go('home'); };
+  }
+}
+
+/* ---------- Réglages ---------- */
+function renderSettings(){
+  app.innerHTML=`<header class="top"><div class="title-row"><div class="left"><button class="back" id="s-back" type="button" aria-label="Retour">‹</button><h1>Réglages</h1></div></div></header>
+  <section class="panel">
+    <div class="card">
+      <div class="field"><label for="s-nom">Ton prénom <span class="hint">(signe tes notes)</span></label><input id="s-nom" type="text" value="${esc(S.me.nom)}"></div>
+      <div class="field"><label for="s-prev">Personne à prévenir en cas d'alerte</label><input id="s-prev" type="text" value="${esc(S.prevenir)}"></div>
+      <button class="primary" id="s-ok" type="button">Enregistrer</button>
+      <div class="status" id="s-st"></div>
+    </div>
+    <div class="card">
+      <h3>À propos</h3>
+      <p class="note">Les données sont sur cet appareil uniquement. Si tu effaces les données de Safari ou supprimes l'app de l'écran d'accueil, elles sont perdues : fais régulièrement « Partager mes notes » et garde le fichier dans iCloud Drive.</p>
+      <p class="note">Version ${APP_VERSION}.</p>
+    </div>
+  </section>`;
+  $('s-back').onclick=()=>go('home');
+  $('s-ok').onclick=async()=>{ const n=$('s-nom').value.trim(), p=$('s-prev').value.trim()||'le responsable';
+    if(!n){ $('s-st').textContent='Indique ton prénom.'; $('s-st').className='status err'; return; }
+    S.me=Object.assign({},S.me,{nom:n}); S.prevenir=p; await DB.put('reglages',S.me,'me'); await DB.put('reglages',p,'prevenir');
+    $('s-st').textContent='Réglages enregistrés.'; $('s-st').className='status ok'; };
+}
+
+/* ---------- Vue d'une chauffe ---------- */
+let dirty=false;
+function renderChauffe(){
+  const ch=curChauffe(); const n=lastDay(ch);
+  if(S.jour>ch.duree) S.jour=ch.duree;
+  app.innerHTML=`<header class="top">
+    <div class="title-row"><div class="left"><button class="back" id="c-back" type="button" aria-label="Retour aux chauffes">‹</button><h1>${esc(ch.nom)}</h1></div><div class="daybadge">J<b>${n||'–'}</b> / ${ch.duree}</div></div>
+    <div class="progress" aria-hidden="true"><span style="width:${Math.min(100,n/ch.duree*100)}%"></span></div>
+    <div class="endzone">${ch.debut?'Début le '+esc(dayLabel(ch,1))+' · ':''}fin de chauffe prévue entre J${ch.finDe} et J${ch.finA}</div>
+    <nav class="tabs" role="tablist">
+      ${[['jour','Saisie'],['hist','Historique'],['lots','Par lot'],['infos','Infos']].map(([k,l])=>`<button role="tab" type="button" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join('')}
+    </nav></header>
+  <section class="panel" id="c-body"></section>`;
+  $('c-back').onclick=()=>go('home');
+  app.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; renderChauffe(); window.scrollTo({top:0}); });
+  ({jour:tabJour, hist:tabHist, lots:tabLots, infos:tabInfos})[S.tab](ch, $('c-body'));
+}
+
+function segHTML(id,key,val){ return `<div class="seg" id="${id}">`+OPTS[key].opts.map(o=>`<button type="button" data-v="${esc(o)}" class="${OPTS[key].alert.includes(o)?'alert':''}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')+'</div>'; }
+function bindSeg(id,key,state,onChange){ const el=$(id); el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; state[key]=state[key]===v?'':v; el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===state[key])); onChange&&onChange(); }); }
+
+/* ----- Onglet Saisie ----- */
+function tabJour(ch, body){
+  const J=S.jour; const mine=myObs(ch.id,J); const st={}; OBS_KEYS.forEach(k=>st[k]=mine?mine[k]||'':'');
+  const rels=releves(ch.id).filter(r=>r.jour===J);
+  const others=entriesOf(ch.id,'obs').filter(e=>e.jour===J && !isMine(e));
+  const phs=entriesOf(ch.id,'photo').filter(e=>e.jour===J);
+  body.innerHTML=`
+    <div class="field"><span class="lab">Jour</span><div class="dates" id="j-dates"></div></div>
+    <form class="card" id="j-form" autocomplete="off">
+      <div class="hhead"><h3>J${J}${ch.debut?' · '+esc(dayLabel(ch,J)):''}</h3>${J>=ch.finDe&&J<=ch.finA?'<span class="chip ok">fin de chauffe possible</span>':''}</div>
+      <div class="field">
+        <span class="lab">Relevés de température</span>
+        <span class="hint">Ajoute un relevé chaque fois que tu regardes le thermomètre.</span>
+        <div class="list" id="j-rels"></div>
+        <div class="three">
+          <div class="field"><label for="j-h">Heure</label><input id="j-h" type="time" value="${hhmm()}"></div>
+          <div class="field"><label for="j-ext">Ext. palox (°C)</label><input id="j-ext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="28"></div>
+          <div class="field"><label for="j-int">Dans palox (°C)</label><input id="j-int" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="29"></div>
+        </div>
+        <button class="primary" id="j-addrel" type="button">+ Ajouter ce relevé</button>
+      </div>
+      ${OBS_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('seg-'+k,k,st[k])}</div>`).join('')}
+      <div class="field"><span class="lab">Photos</span><div class="photos" id="j-ph"></div><label class="ghost filebtn" for="j-phin">+ Ajouter une photo</label><input class="vh" id="j-phin" type="file" accept="image/*" multiple></div>
+      <div class="field"><label for="j-rem">Action du jour / remarques</label><textarea id="j-rem" placeholder="Mise en eau, réhumidification de la couverture…">${esc(mine?mine.remarque||'':'')}</textarea></div>
+      <div id="j-alert" class="alertbox" hidden></div>
+      <button class="primary" type="submit">Enregistrer la journée</button>
+      <div class="status" id="j-st" role="status"></div>
+      ${others.length?`<div class="others"><span class="lab">Observations des collaborateurs</span>${others.map(o=>`<div><div class="who">${esc(authorName(o))}</div><div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${OPTS[k].alert.includes(o[k])?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}</div>`).join('')}</div>`:''}
+    </form>`;
+  // jours
+  const dEl=$('j-dates');
+  for(let j=1;j<=ch.duree;j++){ const b=document.createElement('button'); b.type='button';
+    b.innerHTML='<small>J'+j+'</small>'+(ch.debut?esc(dayShort(ch,j)):j);
+    if(dayFilled(ch.id,j)) b.classList.add('done'); b.setAttribute('aria-pressed',j===J);
+    b.onclick=()=>{ S.jour=j; dirty=false; renderChauffe(); }; dEl.appendChild(b); }
+  const cur=dEl.querySelector('[aria-pressed="true"]'); if(cur) cur.scrollIntoView({inline:'center',block:'nearest'});
+  // relevés
+  const relEl=$('j-rels');
+  if(!rels.length) relEl.innerHTML='<div class="rel none">Aucun relevé pour ce jour.</div>';
+  rels.forEach(r=>{ const d=document.createElement('div'); d.className='rel'; const s=document.createElement('span');
+    s.innerHTML=esc((r.heure?fmtH(r.heure):'heure ?')+' · ext. '+(r.tExt!=null?r.tExt+' °C':'—')+' · dedans '+(r.tInt!=null?r.tInt+' °C':'—'))+(isMine(r)?'':'<small>'+esc(authorName(r))+'</small>');
+    d.appendChild(s);
+    if(isMine(r)){ const b=document.createElement('button'); b.type='button'; b.textContent='Retirer'; b.onclick=async()=>{ await removeEntry(r); toast('Relevé retiré.'); renderChauffe(); }; d.appendChild(b); }
+    relEl.appendChild(d); });
+  // photos
+  const phEl=$('j-ph'); phs.forEach(p=>{ const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-label','Voir la photo'); const im=document.createElement('img'); im.alt=''; setPhoto(im,p.photoId); b.appendChild(im);
+    b.onclick=()=>openViewer(p.photoId,'J'+J+' · '+authorName(p), isMine(p)?async()=>{ await removeEntry(p); try{ await DB.del('photos',p.photoId); }catch(e){} toast('Photo supprimée.'); renderChauffe(); }:null); phEl.appendChild(b); });
+  $('j-phin').onchange=async e=>{ const files=[...e.target.files]; e.target.value=''; if(!files.length) return; const stEl=$('j-st'); stEl.textContent='Ajout de la photo…'; stEl.className='status';
+    try{ const ids=await storePhotos(files); for(const id of ids) await saveEntry({id:uid(), type:'photo', chauffeId:ch.id, jour:J, photoId:id, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()});
+      await saveObs(true); toast(ids.length>1?ids.length+' photos ajoutées.':'Photo ajoutée.'); renderChauffe(); }
+    catch(err){ stEl.textContent='Plus de place sur l\'appareil pour cette photo.'; stEl.className='status err'; } };
+  // observations
+  const showAlert=()=>{ const a=alertsOf(st); const box=$('j-alert'); box.hidden=!a.length; box.innerHTML=a.length?'<strong>À signaler à '+esc(S.prevenir)+'</strong><span>'+a.map(esc).join(' · ')+'</span>':''; };
+  OBS_KEYS.forEach(k=>bindSeg('seg-'+k,k,st,()=>{ dirty=true; showAlert(); })); showAlert();
+  $('j-rem').oninput=()=>{ dirty=true; };
+  async function saveObs(silent){
+    const rem=$('j-rem').value.trim(); const hasAny=OBS_KEYS.some(k=>st[k])||rem;
+    const ex=myObs(ch.id,J);
+    if(!hasAny && !ex) return true;
+    const e=Object.assign({}, ex||{id:'obs:'+ch.id+':'+J+':'+S.me.id, type:'obs', chauffeId:ch.id, jour:J, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()});
+    OBS_KEYS.forEach(k=>e[k]=st[k]||''); e.remarque=rem; e.auteurNom=S.me.nom; delete e.supprime;
+    await saveEntry(e); dirty=false; return true;
+  }
+  const pending=()=>{ const te=num($('j-ext').value), ti=num($('j-int').value); return (te==null&&ti==null)?null:{tExt:te,tInt:ti}; };
+  async function addRel(){ const stEl=$('j-st'); const p=pending();
+    if(!p){ stEl.textContent=($('j-ext').value||$('j-int').value)?'Température illisible : tape seulement le nombre, par exemple 28 ou 28,5.':'Indique au moins une température.'; stEl.className='status err'; return; }
+    try{ await saveEntry({id:uid(), type:'releve', chauffeId:ch.id, jour:J, heure:$('j-h').value||'', tExt:p.tExt, tInt:p.tInt, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()});
+      if(dirty) await saveObs(true);
+      toast('Relevé de '+(fmtH($('j-h').value)||'(sans heure)')+' enregistré.'); renderChauffe(); }
+    catch(err){ stEl.textContent='Enregistrement impossible : stockage plein ou bloqué.'; stEl.className='status err'; } }
+  $('j-addrel').onclick=addRel;
+  ['j-ext','j-int','j-h'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addRel(); } }));
+  $('j-form').onsubmit=async e=>{ e.preventDefault(); if(pending()) return addRel();
+    try{ await saveObs(); toast('Journée enregistrée.'); renderChauffe(); }catch(err){ $('j-st').textContent='Enregistrement impossible : stockage plein ou bloqué.'; $('j-st').className='status err'; } };
+}
+
+/* ----- Onglet Historique ----- */
+function tabHist(ch, body){
+  body.innerHTML=`
+    <div class="card" style="gap:10px">
+      <h3 class="ctitle" id="g-title">Températures</h3>
+      <p class="note">Chaque point est un relevé. Touche un point pour voir sa valeur.</p>
+      <div class="seg" id="g-view" role="group" aria-label="Courbe affichée"></div>
+      <div class="legend" id="g-leg"></div>
+      <svg id="chart" role="img" aria-label="Courbe des températures"></svg>
+      <div class="tip" id="g-tip">Touche un point de la courbe.</div>
+    </div>
+    <div class="card" style="gap:10px">
+      <h3>Partager cette chauffe</h3>
+      <p class="note">Pour l'envoyer à quelqu'un qui n'a pas l'app (WhatsApp, mail…).</p>
+      <div class="row"><button class="ghost" id="g-copy" type="button">Copier le résumé</button><button class="ghost" id="g-csv" type="button">Fichier pour Excel</button></div>
+      <textarea id="g-fb" readonly hidden></textarea>
+      <div class="status" id="g-st"></div>
+    </div>
+    <p class="note">Touche un jour pour le compléter ou le corriger.</p>
+    <div class="list" id="g-days"></div>`;
+  drawChart(ch);
+  const el=$('g-days');
+  for(let j=1;j<=ch.duree;j++){
+    const ents=dayEntries(ch.id,j); const b=document.createElement('button'); b.type='button';
+    const rs=ents.filter(e=>e.type==='releve'), obs=ents.filter(e=>e.type==='obs'), ph=ents.filter(e=>e.type==='photo');
+    const head='J'+j+(ch.debut?' · '+dayLabel(ch,j):'');
+    if(!dayFilled(ch.id,j)){ b.className='item empty'; b.innerHTML=`<div class="hhead"><span class="d">${esc(head)}</span><span>à remplir</span></div>`; }
+    else{
+      b.className='item';
+      const rng=a=>!a.length?null:(Math.min(...a)===Math.max(...a)?Math.min(...a)+' °C':Math.min(...a)+'–'+Math.max(...a)+' °C');
+      const ints=rs.map(x=>x.tInt).filter(v=>v!=null), exts=rs.map(x=>x.tExt).filter(v=>v!=null);
+      const t=[exts.length?'ext. '+rng(exts):null, ints.length?'dedans '+rng(ints):null].filter(Boolean).join(' · ')+(rs.length>1?' ('+rs.length+' relevés)':'');
+      const multi=obs.length>1;
+      b.innerHTML=`<div class="hhead"><span class="d">${esc(head)}</span><span class="mono">${esc(t||'—')}</span></div>`+
+        obs.map(o=>`${multi?`<div class="who">${esc(authorName(o))}</div>`:''}<div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${OPTS[k].alert.includes(o[k])?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}`).join('')+
+        (ph.length?`<div class="rem">${ph.length} photo${ph.length>1?'s':''}</div>`:'');
+    }
+    b.onclick=()=>{ S.jour=j; S.tab='jour'; renderChauffe(); window.scrollTo({top:0}); };
+    el.appendChild(b);
+  }
+  $('g-copy').onclick=()=>{ const txt=summary(ch), st=$('g-st'), fb=$('g-fb');
+    const fallback=()=>{ fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); st.textContent='Le texte est sélectionné : fais « Copier » puis colle-le dans ton message.'; st.className='status'; };
+    try{ navigator.clipboard.writeText(txt).then(()=>{ fb.hidden=true; st.textContent='Résumé copié.'; st.className='status ok'; },fallback); }catch(e){ fallback(); } };
+  $('g-csv').onclick=()=>shareFile(new File(['﻿'+csv(ch)], slug(ch.nom)+'.csv', {type:'text/csv'}), $('g-st'), 'Fichier prêt.');
+}
+function drawChart(ch){
+  const VIEWS={in:['in'],ext:['ext'],both:['in','ext']};
+  const SER=[{k:'in',name:'Dans les palox',color:'var(--s-in)',fill:true},{k:'ext',name:'Extérieur des palox',color:'var(--s-ext)',fill:false}];
+  const vEl=$('g-view'); vEl.innerHTML='';
+  [['in','Dans les palox'],['ext','Extérieur'],['both','Superposer']].forEach(([k,l])=>{ const b=document.createElement('button'); b.type='button'; b.textContent=l; b.setAttribute('aria-pressed',S.courbe===k);
+    b.onclick=()=>{ S.courbe=k; try{ localStorage.setItem('chauffes:courbe',k); }catch(e){} $('g-tip').textContent='Touche un point de la courbe.'; drawChart(ch); }; vEl.appendChild(b); });
+  const P={in:[],ext:[]};
+  releves(ch.id).forEach(r=>{ let f=0.5; if(r.heure&&/^\d{1,2}:\d{2}$/.test(r.heure)){ const [h,m]=r.heure.split(':').map(Number); f=(h+m/60)/24; }
+    const base={t:r.jour-1+f, r}; if(r.tInt!=null) P.in.push(Object.assign({v:r.tInt},base)); if(r.tExt!=null) P.ext.push(Object.assign({v:r.tExt},base)); });
+  P.in.sort((a,b)=>a.t-b.t); P.ext.sort((a,b)=>a.t-b.t);
+  const shown=SER.filter(s=>VIEWS[S.courbe].includes(s.k)); const D=ch.duree;
+  const W=640,H=270,ml=34,mr=56,mt=22,mb=30,pw=W-ml-mr,ph=H-mt-mb;
+  const all=[].concat(...shown.map(s=>P[s.k])).map(p=>p.v);
+  let lo=all.length?Math.floor((Math.min(...all)-2)/5)*5:10, hi=all.length?Math.ceil((Math.max(...all)+2)/5)*5:35; if(hi-lo<10) hi=lo+10;
+  const X=t=>ml+t/D*pw, Y=v=>mt+(hi-v)/(hi-lo)*ph;
+  let g=`<rect class="zone" x="${X(ch.finDe-1)}" y="${mt}" width="${X(ch.finA)-X(ch.finDe-1)}" height="${ph}"></rect><text class="zonet" x="${(X(ch.finDe-1)+X(ch.finA))/2}" y="${mt-6}" text-anchor="middle">fin prévue</text>`;
+  for(let v=lo;v<=hi;v+=5) g+=`<line class="grid" x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}"></line><text x="${ml-6}" y="${Y(v)+4}" text-anchor="end">${v}°</text>`;
+  const step=Math.max(1,Math.ceil(D/7)); for(let j=1;j<=D;j+=step) g+=`<text x="${X(j-0.5)}" y="${H-8}" text-anchor="middle">J${j}</text>`;
+  const pts=[];
+  shown.forEach(s=>{ const a=P[s.k]; if(!a.length) return;
+    if(a.length>1) g+=`<polyline fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${a.map(p=>X(p.t).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')}"></polyline>`;
+    a.forEach(p=>{ g+=`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="4.5" fill="${s.fill?s.color:'var(--surface)'}" stroke="${s.fill?'var(--surface)':s.color}" stroke-width="2"></circle>`; pts.push({p,s}); });
+    const last=a[a.length-1]; g+=`<text class="lbl" x="${X(last.t)+9}" y="${Y(last.v)+4+(S.courbe==='both'?(s.k==='ext'?6:-4):0)}">${last.v} °C</text>`; });
+  pts.forEach((o,i)=>{ g+=`<circle class="hit" data-i="${i}" cx="${X(o.p.t).toFixed(1)}" cy="${Y(o.p.v).toFixed(1)}" r="13"></circle>`; });
+  const svg=$('chart'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=g;
+  svg.querySelectorAll('.hit').forEach(c=>c.onclick=()=>{ const o=pts[Number(c.dataset.i)], r=o.p.r;
+    $('g-tip').innerHTML='<b>'+esc(o.p.v)+' °C</b> · '+esc(o.s.name.toLowerCase())+' · J'+r.jour+(ch.debut?' ('+esc(dayShort(ch,r.jour))+')':'')+(r.heure?' à '+esc(fmtH(r.heure)):'')+' · '+esc(authorName(r)); });
+  $('g-leg').innerHTML=shown.filter(s=>P[s.k].length).map(s=>`<span><svg width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="${s.color}" stroke-width="2"></line><circle cx="11" cy="5" r="3.5" fill="${s.fill?s.color:'var(--surface)'}" stroke="${s.color}" stroke-width="1.5"></circle></svg>${esc(s.name)}</span>`).join('');
+  const hk=S.courbe==='ext'?'ext':'in', li=P[hk][P[hk].length-1];
+  $('g-title').textContent=li?(hk==='in'?'Dans les palox : ':'Extérieur des palox : ')+li.v+' °C au dernier relevé (J'+li.r.jour+')':'Températures';
+  if(!all.length) $('g-tip').textContent=S.courbe==='both'?'Aucun relevé pour l\'instant : ajoute-en un dans l\'onglet Saisie.':'Aucun relevé pour cette courbe pour l\'instant.';
+}
+
+/* ----- Onglet Par lot ----- */
+function tabLots(ch, body){
+  const st={racines:'',cal:'',bois:'',odeur:''}; let photoIds=[];
+  const lots=ch.lots||[];
+  body.innerHTML=`
+    <p class="note">Quand tu sors des plants d'un palox, note ici le lot vérifié : si un lot ou un porte-greffe évolue moins bien, tu sauras lequel.</p>
+    <form class="card" id="p-form" autocomplete="off">
+      <div class="two">
+        <div class="field"><label for="p-jour">Jour</label><select id="p-jour">${Array.from({length:ch.duree},(_,i)=>`<option value="${i+1}"${i+1===S.jour?' selected':''}>J${i+1}${ch.debut?' · '+esc(dayShort(ch,i+1)):''}</option>`).join('')}</select></div>
+        <div class="field"><label for="p-lot">N° de lot</label><input id="p-lot" type="text" inputmode="numeric" list="p-lotsref" placeholder="${lots[0]?esc(lots[0].lot):'9'}"><datalist id="p-lotsref">${lots.map(l=>`<option value="${esc(l.lot)}">Lot ${esc(l.lot)} · ${esc([l.variete,l.pg].filter(Boolean).join(' / '))}</option>`).join('')}</datalist></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="p-var">Variété</label><input id="p-var" type="text"></div>
+        <div class="field"><label for="p-pg">Porte-greffe</label><input id="p-pg" type="text"></div>
+      </div>
+      <div class="field"><label for="p-nb">Nombre de plants regardés</label><input id="p-nb" class="num" type="text" inputmode="numeric" placeholder="5"></div>
+      ${LOT_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('pseg-'+k,k,'')}</div>`).join('')}
+      <div class="field"><span class="lab">Photos</span><div class="photos" id="p-ph"></div><label class="ghost filebtn" for="p-phin">+ Ajouter une photo</label><input class="vh" id="p-phin" type="file" accept="image/*" multiple></div>
+      <div class="field"><label for="p-rem">Remarques</label><input id="p-rem" type="text" placeholder="Palox du fond, cal visible…"></div>
+      <button class="primary" type="submit">Ajouter ce contrôle</button>
+      <div class="status" id="p-st"></div>
+    </form>
+    <div class="list" id="p-list"></div>`;
+  LOT_KEYS.forEach(k=>bindSeg('pseg-'+k,k,st));
+  $('p-lot').oninput=()=>{ const l=lots.find(x=>String(x.lot)===$('p-lot').value.trim()); if(l){ $('p-var').value=l.variete||''; $('p-pg').value=l.pg||''; } };
+  const drawPh=()=>{ const el=$('p-ph'); el.innerHTML=''; photoIds.forEach(id=>{ const b=document.createElement('button'); b.type='button'; const im=document.createElement('img'); im.alt=''; setPhoto(im,id); b.appendChild(im);
+    b.onclick=()=>openViewer(id,'Contrôle pas encore ajouté',async()=>{ photoIds=photoIds.filter(x=>x!==id); try{ await DB.del('photos',id); }catch(e){} drawPh(); }); el.appendChild(b); }); };
+  $('p-phin').onchange=async e=>{ const files=[...e.target.files]; e.target.value=''; if(!files.length) return; try{ photoIds.push(...await storePhotos(files)); drawPh(); $('p-st').textContent='Photo prête : touche « Ajouter ce contrôle » pour l\'enregistrer.'; $('p-st').className='status ok'; }catch(err){ $('p-st').textContent='Plus de place sur l\'appareil.'; $('p-st').className='status err'; } };
+  $('p-form').onsubmit=async e=>{ e.preventDefault(); const lot=$('p-lot').value.trim(); if(!lot){ $('p-st').textContent='Indique le numéro du lot.'; $('p-st').className='status err'; return; }
+    const ent={id:uid(), type:'lot', chauffeId:ch.id, jour:Number($('p-jour').value), lot, variete:$('p-var').value.trim(), pg:$('p-pg').value.trim(), nb:num($('p-nb').value), remarque:$('p-rem').value.trim(), photos:photoIds.slice(), auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()};
+    LOT_KEYS.forEach(k=>ent[k]=st[k]||'');
+    try{ await saveEntry(ent); toast('Contrôle du lot '+lot+' ajouté.'); S.jour=ent.jour; renderChauffe(); }catch(err){ $('p-st').textContent='Enregistrement impossible.'; $('p-st').className='status err'; } };
+  const list=entriesOf(ch.id,'lot').sort((a,b)=>(b.creeLe||'').localeCompare(a.creeLe||''));
+  const el=$('p-list');
+  if(!list.length){ el.innerHTML='<div class="item empty">Aucun contrôle par lot pour l\'instant.</div>'; return; }
+  list.forEach(r=>{ const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<div class="hhead"><span class="d">Lot ${esc(r.lot)}${r.variete||r.pg?' · '+esc([r.variete,r.pg].filter(Boolean).join(' / ')):''}</span><span class="mono">J${r.jour}${ch.debut?' · '+esc(dayShort(ch,r.jour)):''}</span></div>
+      <div class="who">${esc(authorName(r))}</div>${r.nb?`<div class="rem">${esc(r.nb)} plants regardés</div>`:''}
+      <div class="chips">${LOT_KEYS.filter(k=>r[k]).map(k=>`<span class="chip${OPTS[k].alert.includes(r[k])?' al':''}">${esc(OPTS[k].label+' : '+r[k])}</span>`).join('')}</div>${r.remarque?`<div class="rem">${esc(r.remarque)}</div>`:''}`;
+    if((r.photos||[]).length){ const g=document.createElement('div'); g.className='photos'; r.photos.forEach(id=>{ const b=document.createElement('button'); b.type='button'; const im=document.createElement('img'); im.alt=''; setPhoto(im,id); b.appendChild(im); b.onclick=()=>openViewer(id,'Lot '+r.lot+' · J'+r.jour,null); g.appendChild(b); }); d.appendChild(g); }
+    if(isMine(r)){ const a=document.createElement('div'); a.className='confirm'; const del=document.createElement('button'); del.type='button'; del.className='ghost'; del.textContent='Supprimer'; let c=false;
+      del.onclick=async()=>{ if(!c){ c=true; del.textContent='Toucher encore pour supprimer'; del.classList.add('danger'); return; } await removeEntry(r); for(const id of r.photos||[]){ try{ await DB.del('photos',id); }catch(e){} } toast('Contrôle supprimé.'); renderChauffe(); };
+      a.appendChild(del); d.appendChild(a); }
+    el.appendChild(d); });
+}
+
+/* ----- Onglet Infos (chauffe, lots, protocole, soudure) ----- */
+function tabInfos(ch, body){
+  const lots=ch.lots||[]; const tq=lots.reduce((s,l)=>s+(l.qte||0),0), tp=lots.reduce((s,l)=>s+(l.palox||0),0);
+  const byPg={}; lots.forEach(l=>{ const k=l.pg||'?'; byPg[k]=(byPg[k]||0)+(l.qte||0); });
+  body.innerHTML=`
+    <div class="card">
+      <div class="hhead"><h3>La chauffe</h3><button class="ghost" id="i-edit" type="button">Modifier</button></div>
+      <dl class="kv"><dt>Durée</dt><dd>${ch.duree} jours · fin prévue J${ch.finDe}–J${ch.finA}</dd>${ch.debut?`<dt>Début</dt><dd>${esc(dayLabel(ch,1))}</dd>`:''}<dt>Lots</dt><dd>${lots.length}${tq?' · '+tq.toLocaleString('fr-FR')+' plants':''}${tp?' · '+tp+' palox':''}</dd>${Object.keys(byPg).length&&tq?`<dt>Porte-greffes</dt><dd>${Object.entries(byPg).map(([k,v])=>esc(k)+' '+(v?(Math.round(v/tq*1000)/10).toLocaleString('fr-FR')+' %':'')).join(' · ')}</dd>`:''}</dl>
+      ${ch.notes?`<div class="rem">${esc(ch.notes)}</div>`:''}
+      ${lots.length?`<div class="scrollx"><table class="lotsTable"><thead><tr><th>Lot</th><th>Variété</th><th>Porte-greffe</th><th>Plants</th><th>Palox</th></tr></thead><tbody>${lots.map(l=>`<tr><td>${esc(l.lot)}</td><td>${esc(l.variete||'')}</td><td>${esc(l.pg||'')}</td><td>${l.qte!=null?l.qte.toLocaleString('fr-FR'):''}</td><td>${l.palox!=null?l.palox:'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
+    </div>
+    <div class="hhead"><h2>Protocole de contrôle</h2><button class="ghost" id="i-pedit" type="button">${S.editingProto?'Terminer':'Modifier'}</button></div>
+    <p class="note" id="i-pintro">${esc(S.protoIntro)}</p>
+    <div class="proto" id="i-proto"></div>
+    <div class="card">
+      <h3>Quand prévenir ${esc(S.prevenir)}</h3>
+      <ul class="plain"><li>Odeur anormale à la base des plants.</li><li>Pas de gouttes sur la cire, ou couverture sèche.</li><li>Ruissellement ou eau qui stagne au fond d'un palox.</li><li>Bois sec ou détrempé.</li><li>Cal d'un seul côté, brun ou mou.</li><li>Un lot nettement en retard sur les autres pour les racines.</li><li>Une température qui change brusquement d'un jour à l'autre.</li></ul>
+      <p class="note">Ces signes sont des signaux d'alerte, pas un diagnostic.</p>
+    </div>
+    <div class="card">
+      <h3>La soudure du greffon et du porte-greffe</h3>
+      <p class="note">Explications générales sur la technique, pas un protocole : en cas de doute, c'est le responsable de la pépinière qui décide.</p>
+      <div class="sblock"><h4>Ce que c'est</h4><p>La soudure, c'est l'union du greffon et du porte-greffe en une seule plante. Au greffage, les deux morceaux sont seulement emboîtés. Pendant la chauffe, ils doivent se relier par un tissu vivant : le <b>cal</b>.</p></div>
+      <div class="sblock"><h4>Comment elle se forme</h4><ol class="steps"><li><b>Contact.</b> Les deux cambiums (la fine couche verte vivante sous l'écorce) sont en contact grâce à la coupe de greffage.</li><li><b>Cal.</b> Avec la chaleur et l'humidité, chaque partie produit un tissu blanc-crème, tendre, au niveau des coupes.</li><li><b>Jonction.</b> Les cals du greffon et du porte-greffe grossissent et se rejoignent.</li><li><b>Vaisseaux.</b> De nouveaux vaisseaux se forment à travers le cal. La sève peut alors passer d'une partie à l'autre.</li></ol><p class="note">À la sortie de chauffe, la soudure n'est pas terminée : elle continue de se renforcer pendant la saison en pépinière.</p></div>
+      <div class="sblock"><h4>Ce qui la favorise ou la gêne</h4><ul class="plain"><li><b>Chaleur :</b> accélère la formation du cal. Trop chaud, le cal devient abondant et fragile.</li><li><b>Humidité :</b> indispensable, un cal qui sèche meurt. Trop d'eau prive la base d'air et favorise les moisissures.</li><li><b>Qualité de la coupe :</b> un emboîtement serré et bien aligné laisse moins de vide à combler.</li><li><b>Réserves du bois :</b> le plant vit sur ses réserves tant qu'il n'a ni racines ni feuilles.</li></ul></div>
+      <div class="sblock"><h4>Comment l'observer</h4><dl class="kv"><dt>Bon signe</dt><dd>Un bourrelet blanc-crème visible tout autour de la ligne de greffe, ferme au toucher.</dd><dt>À surveiller</dt><dd>Pas encore de cal visible : normal en début de chauffe, à comparer avec les autres lots.</dd><dt class="al">Alerte</dt><dd class="al">Cal d'un seul côté, cal brun ou noir, cal mou ou aqueux, ou moisissure à la greffe.</dd></dl><p class="note">Certaines pépinières testent la soudure en exerçant une légère pression sur le greffon. Ce geste peut casser une soudure fragile : ne le fais que si le responsable te le montre.</p></div>
+    </div>`;
+  $('i-edit').onclick=()=>{ renderChauffeForm._init=false; go('edit'); };
+  $('i-pedit').onclick=()=>{ S.editingProto=!S.editingProto; renderChauffe(); };
+  const pEl=$('i-proto');
+  if(!S.editingProto){
+    pEl.innerHTML=S.proto.map(p=>`<div class="pi"><h3>${esc(p.t)}</h3><dl class="kv"><dt>Comment</dt><dd>${esc(p.c)}</dd><dt>Normal</dt><dd>${esc(p.n)}</dd><dt>Alerte</dt><dd class="al">${esc(p.a)}</dd></dl></div>`).join('');
+  } else {
+    const draft=JSON.parse(JSON.stringify(S.proto));
+    const draw=()=>{ pEl.innerHTML=`<div class="field"><label for="pi-intro">Introduction</label><textarea id="pi-intro">${esc(S.protoIntro)}</textarea></div>`+draft.map((p,i)=>`<div class="pi">
+      <div class="field"><label for="pt${i}">Contrôle</label><input id="pt${i}" type="text" value="${esc(p.t)}"></div>
+      <div class="field"><label for="pc${i}">Comment</label><textarea id="pc${i}">${esc(p.c)}</textarea></div>
+      <div class="field"><label for="pn${i}">Normal</label><textarea id="pn${i}">${esc(p.n)}</textarea></div>
+      <div class="field"><label for="pa${i}">Alerte</label><textarea id="pa${i}">${esc(p.a)}</textarea></div>
+      <button class="ghost danger" type="button" data-del="${i}">Retirer ce contrôle</button></div>`).join('')+
+      `<div class="row"><button class="ghost" type="button" id="pi-add">+ Ajouter un contrôle</button><button class="ghost" type="button" id="pi-reset">Revenir au protocole d'origine</button></div><button class="primary" type="button" id="pi-save">Enregistrer le protocole</button>`;
+      const collect=()=>draft.forEach((p,i)=>{ p.t=$('pt'+i).value.trim(); p.c=$('pc'+i).value.trim(); p.n=$('pn'+i).value.trim(); p.a=$('pa'+i).value.trim(); });
+      pEl.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ collect(); draft.splice(Number(b.dataset.del),1); draw(); });
+      $('pi-add').onclick=()=>{ collect(); draft.push({t:'Nouveau contrôle',c:'',n:'',a:''}); draw(); };
+      $('pi-reset').onclick=()=>{ draft.splice(0,draft.length,...JSON.parse(JSON.stringify(DEFAULT_PROTO))); $('pi-intro').value=DEFAULT_PROTO_INTRO; draw(); };
+      $('pi-save').onclick=async()=>{ collect(); S.proto=draft.filter(p=>p.t); S.protoIntro=$('pi-intro').value.trim(); await DB.put('reglages',S.proto,'proto'); await DB.put('reglages',S.protoIntro,'protoIntro'); S.editingProto=false; toast('Protocole enregistré.'); renderChauffe(); };
+    };
+    draw(); $('i-pintro').hidden=true;
+  }
+}
+
+/* ====================================================================
+   RÉSUMÉ, CSV, PARTAGE, IMPORT (fusion)
+   ==================================================================== */
+function slug(s){ return String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'chauffe'; }
+function summary(ch){
+  const out=[ch.nom+' — '+ch.duree+' jours, fin prévue J'+ch.finDe+'–J'+ch.finA+(ch.debut?' (début '+dayLabel(ch,1)+')':''),''];
+  for(let j=1;j<=ch.duree;j++){ if(!dayFilled(ch.id,j)) continue; const ents=dayEntries(ch.id,j);
+    out.push('J'+j+(ch.debut?' · '+dayLabel(ch,j):''));
+    ents.filter(e=>e.type==='releve').sort((a,b)=>(a.heure||'').localeCompare(b.heure||'')).forEach(r=>out.push('  T° '+(r.heure?fmtH(r.heure):'heure ?')+' · ext. '+(r.tExt!=null?r.tExt+' °C':'—')+' · dedans '+(r.tInt!=null?r.tInt+' °C':'—')+' ('+authorName(r)+')'));
+    ents.filter(e=>e.type==='obs').forEach(o=>{ const obs=OBS_KEYS.filter(k=>o[k]).map(k=>OPTS[k].label+' : '+o[k]); if(obs.length) out.push('  '+obs.join(' · ')+' ('+authorName(o)+')'); const al=alertsOf(o); if(al.length) out.push('  ⚠ À signaler : '+al.join(', ')); if(o.remarque) out.push('  '+o.remarque); });
+    const ph=ents.filter(e=>e.type==='photo').length; if(ph) out.push('  '+ph+' photo'+(ph>1?'s':'')+' dans le journal');
+  }
+  const lots=entriesOf(ch.id,'lot').sort((a,b)=>a.jour-b.jour);
+  if(lots.length){ out.push('','Contrôles par lot'); lots.forEach(r=>out.push('  J'+r.jour+' · Lot '+r.lot+((r.variete||r.pg)?' ('+[r.variete,r.pg].filter(Boolean).join('/')+')':'')+(r.nb?' · '+r.nb+' plants':'')+LOT_KEYS.filter(k=>r[k]).map(k=>' · '+OPTS[k].label+' : '+r[k]).join('')+(r.remarque?' · '+r.remarque:'')+' ('+authorName(r)+')')); }
+  return out.join('\n');
+}
+function csv(ch){
+  const c=v=>{ const s=v==null?'':String(v); return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const rows=[['Jour','Date','Type','Heure','T° ext. (°C)','T° dans palox (°C)','Lot','Variété','Porte-greffe','Nb plants',...OBS_KEYS.map(k=>OPTS[k].label),'Remarques','Auteur']];
+  const ents=entriesOf(ch.id).filter(e=>e.type!=='photo').sort((a,b)=>a.jour-b.jour||(a.heure||'').localeCompare(b.heure||''));
+  ents.forEach(e=>rows.push(['J'+e.jour, dayShort(ch,e.jour), {releve:'Relevé',obs:'Observation',lot:'Contrôle lot'}[e.type]||e.type, e.heure||'', e.tExt??'', e.tInt??'', e.lot||'', e.variete||'', e.pg||'', e.nb??'', ...OBS_KEYS.map(k=>e[k]||''), e.remarque||'', authorName(e)]));
+  return rows.map(r=>r.map(c).join(';')).join('\r\n');
+}
+async function shareFile(file, st, okMsg){
+  try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:file.name}); st.textContent=okMsg; st.className='status ok'; return; } }
+  catch(e){ if(e && e.name==='AbortError'){ st.textContent='Partage annulé.'; st.className='status'; return; } }
+  const u=URL.createObjectURL(file); const a=document.createElement('a'); a.href=u; a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000);
+  st.textContent=okMsg+' (téléchargé)'; st.className='status ok';
+}
+const blobToData=b=>new Promise(ok=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.readAsDataURL(b); });
+async function exportAll(st){
+  st.textContent='Préparation du fichier…'; st.className='status';
+  try{
+    const photos={}; const ids=new Set();
+    S.entrees.filter(e=>!e.supprime).forEach(e=>{ if(e.photoId) ids.add(e.photoId); (e.photos||[]).forEach(id=>ids.add(id)); });
+    for(const id of ids){ const b=await DB.get('photos',id); if(b) photos[id]=await blobToData(b); }
+    const data={format:'journal-chauffes', version:1, exportePar:S.me.nom, exporteLe:nowIso(), chauffes:S.chauffes, entrees:S.entrees, photos};
+    const d=new Date(); const name='notes-chauffes-'+slug(S.me.nom)+'-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
+    await shareFile(new File([JSON.stringify(data)], name, {type:'application/json'}), st, 'Fichier prêt.');
+  }catch(e){ st.textContent='Export impossible.'; st.className='status err'; }
+}
+async function importFile(e, st){
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  st.textContent='Lecture du fichier…'; st.className='status';
+  try{
+    const j=JSON.parse(await f.text());
+    if(!j || j.format!=='journal-chauffes'){ st.textContent='Ce fichier ne vient pas du Journal de chauffes.'; st.className='status err'; return; }
+    let nc=0, ne=0, np=0;
+    const newer=(a,b)=>!a || (b.majLe||'')>(a.majLe||'');
+    for(const c of j.chauffes||[]){ const ex=S.chauffes.find(x=>x.id===c.id); if(newer(ex,c)){ await DB.put('chauffes',c); if(ex) Object.assign(ex,c); else S.chauffes.push(c); nc++; } }
+    const batch=[];
+    for(const en of j.entrees||[]){ const ex=S.entrees.find(x=>x.id===en.id); if(newer(ex,en)){ batch.push(en); if(ex) Object.assign(ex,en); else S.entrees.push(en); ne++; } }
+    if(batch.length) await DB.putMany('entrees',batch);
+    for(const [id,u] of Object.entries(j.photos||{})){ const ex=await DB.get('photos',id); if(!ex){ const b=await (await fetch(u)).blob(); await DB.put('photos',b,id); np++; } }
+    st.textContent=(nc||ne||np)?`Importé : ${ne} note${ne>1?'s':''}, ${nc} chauffe${nc>1?'s':''}, ${np} photo${np>1?'s':''}${j.exportePar?' (de '+j.exportePar+')':''}.`:'Rien de nouveau dans ce fichier : tout y était déjà.';
+    st.className='status ok'; toast('Import terminé.');
+    setTimeout(render,1200);
+  }catch(err){ st.textContent='Fichier illisible ou stockage plein.'; st.className='status err'; }
+}
+
+/* ====================================================================
+   DÉMARRAGE + MISE À JOUR HORS LIGNE
+   ==================================================================== */
+(async function start(){
+  try{ await loadAll(); }catch(e){ app.innerHTML='<div class="banner" style="margin-top:20px">Le stockage de ce navigateur est bloqué (navigation privée ?). Ouvre l\'app normalement pour enregistrer tes notes.</div>'; return; }
+  render();
+})();
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    reg.addEventListener('updatefound',()=>{ const w=reg.installing; if(!w) return; w.addEventListener('statechange',()=>{ if(w.state==='installed' && navigator.serviceWorker.controller){ const b=document.createElement('div'); b.className='banner'; b.style.margin='10px 16px'; b.innerHTML='<span>Une nouvelle version de l\'app est prête.</span>'; const btn=document.createElement('button'); btn.className='ghost'; btn.textContent='Recharger'; btn.onclick=()=>location.reload(); b.appendChild(btn); document.body.prepend(b); } }); });
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>

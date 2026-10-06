@@ -1,0 +1,33 @@
+JOURNAL DE CHAUFFES — application hors ligne
+=============================================
+
+Contenu du dossier (tout doit être mis en ligne ensemble) :
+  index.html             l'application
+  sw.js                  permet le fonctionnement sans internet
+  manifest.webmanifest   permet l'installation sur l'écran d'accueil
+  icon-*.png, apple-touch-icon.png   icônes
+
+MISE EN LIGNE (une seule fois, depuis l'iPad, avec GitHub Pages — gratuit)
+1. Dans l'app Fichiers, touche le .zip pour le décompresser : un dossier « journal-chauffes » apparaît.
+2. Dans Safari, va sur github.com, crée un compte (Sign up).
+3. Touche « + » puis « New repository ». Nom : journal-chauffes. Coche « Public ». Touche « Create repository ».
+4. Touche « uploading an existing file ». Choisis TOUS les fichiers du dossier (pas le dossier lui-même), puis « Commit changes ».
+5. Va dans « Settings » → « Pages ». Dans « Branch », choisis « main » puis « Save ».
+6. Après 1 à 2 minutes, l'adresse s'affiche : https://TON-NOM.github.io/journal-chauffes/
+
+INSTALLATION SUR UN IPHONE / IPAD
+1. Ouvre l'adresse dans Safari (avec internet, la première fois).
+2. Partager → « Sur l'écran d'accueil » → Ajouter.
+3. Ouvre l'app depuis l'icône. Ensuite, elle fonctionne sans internet.
+Important : utilise toujours l'icône de l'écran d'accueil, pas Safari, sinon tu verrais un autre journal vide.
+
+PARTAGE AVEC LES COLLABORATEURS
+- Envoie-leur l'adresse : ils installent l'app de la même façon.
+- « Partager mes notes » crée un fichier .json (AirDrop, WhatsApp, mail).
+- « Importer » ajoute les notes reçues sans rien écraser.
+
+SAUVEGARDE
+Les données sont sur l'appareil. Fais régulièrement « Partager mes notes » et garde le fichier dans iCloud Drive.
+
+MISE À JOUR DE L'APP
+Remplace les fichiers sur GitHub (Add file → Upload files). Au prochain lancement avec internet, l'app propose « Recharger ». Les notes ne sont pas touchées.
