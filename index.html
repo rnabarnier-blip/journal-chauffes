@@ -167,6 +167,12 @@ ul.plain{margin:0;padding-left:20px;display:grid;gap:4px}
 .two{align-items:end}
 .num::placeholder{font-family:var(--f-body);font-size:16px}
 input[type=time]{min-width:0;max-width:100%;display:block}
+.syncbar{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font:600 13px var(--f-body);cursor:pointer;min-height:34px}
+.syncbar i{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.syncbar.ok i{background:var(--accent)} .syncbar.busy i{background:var(--warn);animation:pulse 1s infinite alternate}
+.syncbar.wait i{background:var(--warn)} .syncbar.bad{color:var(--bad);border-color:var(--bad)} .syncbar.bad i{background:var(--bad)}
+@keyframes pulse{from{opacity:1}to{opacity:.3}}
+.photos button.nophoto{display:none}
 .ex{font-size:13px;color:var(--muted);font-style:italic}
 .confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -190,7 +196,10 @@ input[type=time]{min-width:0;max-width:100%;display:block}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.4.0';
+const SUPA_URL = 'https://wxgsbswpqerjalnavczi.supabase.co';
+const SUPA_KEY = 'sb_publishable_jY9egWzrvPUggs4yUmQUQg_RumT4Lad';
+const SYNC_AVAILABLE = /^(https:\/\/|http:\/\/localhost)/.test(SUPA_URL) && SUPA_KEY.length>20;
 const SEED_CHAUFFE1 = {"chauffe": {"id": "chauffe-1-vivero-richter-2026", "nom": "Chauffe 1 · Vivero Richter", "duree": 19, "finDe": 17, "finA": 19, "debut": "2026-10-02", "notes": "« 1ª calefacion » du tableau de production 2026/2027 : 27 lots, 990 300 plants. Palox couverts d'une couverture humide et d'un plastique. Mise en eau de tous les palox le 06/10.", "lots": [{"lot": "1", "variete": "CAB", "pg": "SO4", "qte": 102300, "palox": 19}, {"lot": "2", "variete": "SAU", "pg": "SO4", "qte": 57200, "palox": 11}, {"lot": "3", "variete": "SAU", "pg": "SO4", "qte": 32200, "palox": 6}, {"lot": "4", "variete": "SAU", "pg": "SO4", "qte": 21100, "palox": 4}, {"lot": "5", "variete": "SAU", "pg": "SO4", "qte": 25700, "palox": 5}, {"lot": "6", "variete": "CHA", "pg": "SO4", "qte": 60500, "palox": 11}, {"lot": "7", "variete": "TIO", "pg": "SO4", "qte": 12700, "palox": 3}, {"lot": "8", "variete": "VIO", "pg": "SO4", "qte": 13700, "palox": 2}, {"lot": "9", "variete": "SAU", "pg": "5BB", "qte": 212200, "palox": 38}, {"lot": "10", "variete": "SAU", "pg": "5BB", "qte": 43400, "palox": 8}, {"lot": "11", "variete": "SAU", "pg": "5BB", "qte": 29900, "palox": 5}, {"lot": "12", "variete": "SAU", "pg": "5BB", "qte": 31500, "palox": 6}, {"lot": "13", "variete": "CHA", "pg": "SO4", "qte": 14700, "palox": 3}, {"lot": "14", "variete": "SAU", "pg": "5BB", "qte": 33300, "palox": 7}, {"lot": "16", "variete": "CHA", "pg": "SO4", "qte": 15100, "palox": 2}, {"lot": "17", "variete": "CHA", "pg": "SO4", "qte": 19100, "palox": 3}, {"lot": "18", "variete": "PIN", "pg": "SO4", "qte": 2200, "palox": 1}, {"lot": "19", "variete": "ALBA", "pg": "SO4", "qte": 6200, "palox": 1}, {"lot": "20", "variete": "ALBA", "pg": "R110", "qte": 12200, "palox": 3}, {"lot": "21", "variete": "MER", "pg": "R110", "qte": 36400, "palox": 6}, {"lot": "22", "variete": "MER", "pg": "R110", "qte": 38000, "palox": 8}, {"lot": "23", "variete": "CHA", "pg": "R110", "qte": 22000, "palox": null}, {"lot": "24", "variete": "CAB", "pg": "R110", "qte": 8000, "palox": null}, {"lot": "25", "variete": "CAM", "pg": "R110", "qte": 14400, "palox": null}, {"lot": "26", "variete": "SAU", "pg": "R110", "qte": 21800, "palox": null}, {"lot": "27", "variete": "TIO", "pg": "R110", "qte": 92500, "palox": 17}, {"lot": "28", "variete": "CHA", "pg": "R110", "qte": 12000, "palox": 3}], "creeLe": "2026-10-02T12:00:00.000Z", "creePar": "Raphaël"}, "entrees": [{"id": "seed-rel-1-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "heure": "13:46", "tExt": 15, "tInt": 15.5, "creeLe": "2026-10-06T17:15:28.618Z"}, {"id": "seed-obs-1", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "remarque": "Lancement de la chauffe. Relevé 15 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:28.618Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-2-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "heure": "13:46", "tExt": 18, "tInt": 18, "creeLe": "2026-10-06T17:15:34.506Z"}, {"id": "seed-obs-2", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "remarque": "Relevé 18 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:34.506Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-3-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "heure": "13:47", "tExt": 22, "tInt": 22, "creeLe": "2026-10-06T17:15:40.124Z"}, {"id": "seed-obs-3", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "remarque": "Relevé 23 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:40.124Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-4-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "heure": "13:48", "tExt": 26, "tInt": 27, "creeLe": "2026-10-06T17:15:45.624Z"}, {"id": "seed-obs-4", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "remarque": "Relevé 26 °C (lieu de mesure à préciser). Contrôle des plants avec Gérard.", "creeLe": "2026-10-06T17:15:45.624Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-5-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "10:00", "tExt": 28, "tInt": 29, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-rel-5-1", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "14:11", "tExt": 26.5, "tInt": 27.5, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-obs-5", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "remarque": "Mise en eau de tous les palox. Environ 29 °C dans les palox. Palox couverts (couverture humide + plastique).\nBaisse de température du a l’eau dans les palox", "creeLe": "2026-10-06T17:39:48.450Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}]};
 
 /* ---------- Valeurs des observations ---------- */
@@ -267,8 +276,8 @@ const entriesOf = (cid, type) => S.entrees.filter(e=>!e.supprime && e.chauffeId=
 const authorName = e => e.auteurNom || 'Inconnu';
 const isMine = e => S.me && e.auteurId===S.me.id;
 
-async function saveEntry(e){ e.majLe=nowIso(); await DB.put('entrees',e); const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); }
-async function saveChauffe(c){ c.majLe=nowIso(); await DB.put('chauffes',c); const i=S.chauffes.findIndex(x=>x.id===c.id); if(i>=0) S.chauffes[i]=c; else S.chauffes.push(c); }
+async function saveEntry(e){ e.majLe=nowIso(); await DB.put('entrees',e); const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); Sync.mark('entree',e.id); }
+async function saveChauffe(c){ c.majLe=nowIso(); await DB.put('chauffes',c); const i=S.chauffes.findIndex(x=>x.id===c.id); if(i>=0) S.chauffes[i]=c; else S.chauffes.push(c); Sync.mark('chauffe',c.id); }
 async function removeEntry(e){ const t=Object.assign({},e,{supprime:true}); await saveEntry(t); }
 
 /* ---------- Données dérivées d'une chauffe ---------- */
@@ -282,7 +291,7 @@ function releves(cid){ return entriesOf(cid,'releve').sort((a,b)=>a.jour-b.jour 
 
 /* ---------- Photos ---------- */
 const photoUrls={};
-function setPhoto(img,id){ if(photoUrls[id]){ img.src=photoUrls[id]; return; } DB.get('photos',id).then(b=>{ if(b){ photoUrls[id]=URL.createObjectURL(b); img.src=photoUrls[id]; } }).catch(()=>{}); }
+function setPhoto(img,id){ if(photoUrls[id]){ img.src=photoUrls[id]; return; } DB.get('photos',id).then(b=>{ if(b){ photoUrls[id]=URL.createObjectURL(b); img.src=photoUrls[id]; } else { const p=img.closest('button'); if(p && p.parentElement && p.parentElement.classList.contains('photos')){ p.disabled=true; p.classList.add('nophoto'); p.title='Photo restée sur le téléphone de son auteur'; } } }).catch(()=>{}); }
 async function shrink(file){
   const url=URL.createObjectURL(file);
   try{ const img=await new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ko; i.src=url; });
@@ -391,6 +400,113 @@ function detectLots(rows){
   return { header:best.row+1, map:M, headers:rows[best.row], lots:lots.map(L=>({lot:L.lot, variete:L.variete, pg:L.pg, qte:L.qteLot!=null?L.qteLot:(L.qteN?L.qteSum:null), palox:L.palox, rows:L.rows})) };
 }
 
+
+/* ====================================================================
+   SYNCHRONISATION AUTOMATIQUE (Supabase) — optionnelle
+   Chaque appareil garde tout en local ; dès qu'il y a du réseau, il envoie
+   ses changements et reçoit ceux de l'équipe. La version la plus récente
+   (majLe) gagne. Les photos restent sur l'appareil qui les a prises.
+   ==================================================================== */
+const Sync = {
+  code:null, pending:new Set(), since:null, lastOk:null, state:'off', err:'', running:false, again:false, timer:null, received:0,
+  async load(){
+    this.code=(await DB.get('reglages','equipe'))||null;
+    this.pending=new Set((await DB.get('reglages','syncPending'))||[]);
+    this.since=(await DB.get('reglages','syncSince'))||null;
+    this.lastOk=(await DB.get('reglages','syncLastOk'))||null;
+    this.state=this.active()?'idle':'off';
+  },
+  active(){ return SYNC_AVAILABLE && !!this.code; },
+  savePending(){ clearTimeout(this._ps); this._ps=setTimeout(()=>DB.put('reglages',Array.from(this.pending),'syncPending').catch(()=>{}),300); },
+  mark(kind,id){ if(!this.active()) return; if(kind==='entree'){ const e=S.entrees.find(x=>x.id===id); if(e&&e.type==='photo') return; } this.pending.add(kind+'|'+id); this.savePending(); this.schedule(2500); },
+  markAll(){ S.chauffes.forEach(c=>this.pending.add('chauffe|'+c.id)); S.entrees.forEach(e=>{ if(e.type!=='photo') this.pending.add('entree|'+e.id); }); this.savePending(); },
+  async setCode(code){
+    code=(code||'').trim(); const changed=code!==(this.code||'');
+    this.code=code||null; await DB.put('reglages',this.code,'equipe');
+    if(changed){ this.since=null; await DB.put('reglages',null,'syncSince'); this.lastOk=null; await DB.put('reglages',null,'syncLastOk'); this.pending=new Set(); if(this.code) this.markAll(); else this.savePending(); }
+    this.state=this.active()?'idle':'off'; this.err=''; this.paint();
+    if(this.active()) this.run();
+  },
+  schedule(ms){ if(!this.active()) return; clearTimeout(this.timer); this.timer=setTimeout(()=>this.run(),ms); },
+  async rpc(fn, body){
+    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),20000);
+    const headers={'Content-Type':'application/json','apikey':SUPA_KEY}; if(/^eyJ/.test(SUPA_KEY)) headers['Authorization']='Bearer '+SUPA_KEY;
+    let r; try{ r=await fetch(SUPA_URL.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers,body:JSON.stringify(body),signal:ctl.signal,cache:'no-store'}); }
+    catch(e){ const er=new Error('offline'); er.kind='offline'; throw er; } finally{ clearTimeout(t); }
+    const txt=await r.text(); let j=null; try{ j=txt?JSON.parse(txt):null; }catch(e){}
+    if(!r.ok){ const msg=(j&&(j.message||j.hint||j.details))||txt||('HTTP '+r.status); const er=new Error(msg); er.kind=/code_equipe_incorrect/.test(msg)?'badcode':'server'; throw er; }
+    return j;
+  },
+  async push(){
+    const keys=Array.from(this.pending);
+    for(let i=0;i<keys.length;i+=200){
+      const chunk=keys.slice(i,i+200); const rows=[];
+      chunk.forEach(k=>{ const [kind,id]=[k.slice(0,k.indexOf('|')),k.slice(k.indexOf('|')+1)]; const rec=kind==='chauffe'?S.chauffes.find(x=>x.id===id):S.entrees.find(x=>x.id===id); if(rec) rows.push({kind,id,maj_le:rec.majLe||'',data:rec}); });
+      if(rows.length) await this.rpc('jc_push',{p_code:this.code,p_rows:rows});
+      chunk.forEach(k=>this.pending.delete(k)); this.savePending();
+    }
+  },
+  async pull(){
+    let since=this.since, got=0, guard=0;
+    while(guard++<50){
+      const rows=await this.rpc('jc_pull',{p_code:this.code,p_since:since,p_limit:1000})||[];
+      const ch=[], en=[];
+      for(const r of rows){
+        const d=r.data; if(!d||typeof d!=='object') continue; d.majLe=d.majLe||r.maj_le;
+        if(r.kind==='chauffe'){ const ex=S.chauffes.find(x=>x.id===r.id); if(!ex||(r.maj_le||'')>(ex.majLe||'')){ if(this.pending.has('chauffe|'+r.id)&&ex&&(ex.majLe||'')>=(r.maj_le||'')) continue; ch.push(d); } }
+        else if(r.kind==='entree'){ const ex=S.entrees.find(x=>x.id===r.id); if(!ex||(r.maj_le||'')>(ex.majLe||'')) en.push(d); }
+      }
+      if(ch.length){ await DB.putMany('chauffes',ch); ch.forEach(c=>{ const i=S.chauffes.findIndex(x=>x.id===c.id); if(i>=0) S.chauffes[i]=c; else S.chauffes.push(c); }); }
+      if(en.length){ await DB.putMany('entrees',en); en.forEach(e=>{ const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); }); }
+      got+=ch.length+en.length;
+      if(!rows.length) break;
+      const last=rows[rows.length-1].updated_at;
+      if(rows.length>=1000){ since=new Date(Date.parse(last)-1).toISOString(); continue; }
+      const overlap=new Date(Date.parse(last)-120000).toISOString();
+      if(!this.since || overlap>this.since){ this.since=overlap; await DB.put('reglages',this.since,'syncSince'); }
+      break;
+    }
+    return got;
+  },
+  async run(){
+    if(!this.active()) return; if(this.running){ this.again=true; return; }
+    if(this.state==='badcode') return;
+    this.running=true; this.state='busy'; this.paint();
+    try{
+      await this.push();
+      const got=await this.pull();
+      this.lastOk=nowIso(); await DB.put('reglages',this.lastOk,'syncLastOk'); this.state='idle'; this.err='';
+      if(got){ this.received+=got; refreshAfterSync(got); }
+    }catch(e){ this.state=e.kind==='offline'?'offline':(e.kind==='badcode'?'badcode':'error'); this.err=e.message||''; }
+    finally{ this.running=false; this.paint(); if(this.again){ this.again=false; this.schedule(500); } }
+  },
+  ago(){ if(!this.lastOk) return ''; const m=Math.round((Date.now()-Date.parse(this.lastOk))/60000); return m<1?'à l\'instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':'il y a '+Math.round(m/1440)+' j'; },
+  label(){
+    const n=this.pending.size, w=n?` · ${n} note${n>1?'s':''} en attente d'envoi`:'';
+    if(!SYNC_AVAILABLE) return null;
+    if(!this.code) return {cls:'off', txt:'Partage automatique désactivé (code d\'équipe dans Réglages)'};
+    if(this.state==='busy') return {cls:'busy', txt:'Synchronisation…'};
+    if(this.state==='badcode') return {cls:'bad', txt:'Code d\'équipe incorrect : vérifie-le dans Réglages'};
+    if(this.state==='offline') return {cls:'wait', txt:'Pas de réseau : envoi automatique au retour du réseau'+w};
+    if(this.state==='error') return {cls:'wait', txt:'Serveur indisponible, nouvel essai bientôt'+w};
+    return {cls:'ok', txt:(this.lastOk?'À jour avec l\'équipe · '+this.ago():'Partage automatique activé')+w};
+  },
+  paint(){ document.querySelectorAll('[data-syncbar]').forEach(el=>{ const l=this.label(); el.hidden=!l; if(l){ el.className='syncbar '+l.cls; el.querySelector('span').textContent=l.txt; } }); }
+};
+function syncbarHTML(){ return SYNC_AVAILABLE?'<button type="button" class="syncbar" data-syncbar><i aria-hidden="true"></i><span></span></button>':''; }
+function bindSyncbar(){ document.querySelectorAll('[data-syncbar]').forEach(b=>b.onclick=()=>{ if(Sync.state==='badcode'||!Sync.code) go('settings'); else { Sync.state=Sync.state==='badcode'?'idle':Sync.state; Sync.run(); } }); Sync.paint(); }
+function refreshAfterSync(n){
+  const typing=document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if(S.view==='home' || (S.view==='chauffe' && (S.tab==='hist' || S.tab==='infos'&&!S.editingProto || (S.tab==='jour'&&!dirty&&!typing) || (S.tab==='lots'&&!typing)))){
+    const y=window.scrollY; render(); window.scrollTo({top:y});
+  }
+  toast(n+' note'+(n>1?'s':'')+' reçue'+(n>1?'s':'')+' de l\'équipe.');
+}
+window.addEventListener('online',()=>{ if(Sync.state!=='badcode') Sync.run(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ Sync.paint(); Sync.schedule(800); } });
+setInterval(()=>{ if(document.visibilityState==='visible'){ Sync.paint(); if(Sync.state!=='badcode') Sync.run(); } },60000);
+function readHashCode(){ const m=/[#&]equipe=([^&]+)/.exec(location.hash||''); if(!m) return null; const c=decodeURIComponent(m[1]).trim(); const E=envInfo(); if(!(E.ios&&!E.standalone)){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} } return c||null; }
+
 /* ---------- Aide à l'installation ---------- */
 let installPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installPrompt=e; if(S.view==='home'||!S.me) render(); });
@@ -445,26 +561,29 @@ function renderWelcome(){
       <h2 style="margin:0">Bienvenue</h2>
       <p class="note">Cette application fonctionne sans internet : tout est enregistré sur cet appareil. Chaque note est signée avec ton prénom, pour que tes collaborateurs sachent qui l'a prise.</p>
       <div class="field"><label for="w-nom">Ton prénom</label><input id="w-nom" type="text" autocomplete="given-name" placeholder="Prénom"><span class="ex">Ex. : Juan. Il apparaîtra sur chacune de tes notes.</span></div>
+      ${SYNC_AVAILABLE?`<div class="field"><label for="w-code">Code d'équipe <span class="hint">(facultatif)</span></label><input id="w-code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="${esc(S.hashCode||'')}" placeholder="Code donné par le responsable"><span class="ex">Il est écrit sous le QR code. Avec ce code, tes notes et celles de l'équipe se partagent toutes seules. Laisse vide si tu travailles seul.</span></div>`:''}
       <button class="primary" id="w-ok" type="button">Commencer</button>
       <div class="status" id="w-st"></div>
     </div>
   </section>`;
   bindInstall();
   $('w-ok').onclick=async()=>{ const n=$('w-nom').value.trim(); if(!n){ $('w-st').textContent='Indique ton prénom.'; $('w-st').className='status err'; return; }
-    S.me={id:uid(), nom:n}; await DB.put('reglages',S.me,'me'); try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){} go('home'); };
+    S.me={id:uid(), nom:n}; await DB.put('reglages',S.me,'me'); try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+    const wc=$('w-code'); go('home'); if(wc && wc.value.trim()){ await Sync.setCode(wc.value.trim()); } };
 }
 
 /* ---------- Accueil ---------- */
 function renderHome(){
   const list=liveChauffes();
-  const seedAvail = SEED_CHAUFFE1 && !S.chauffes.some(c=>c.id===SEED_CHAUFFE1.chauffe.id) && !S.seedHidden;
+  const seedAvail = SEED_CHAUFFE1 && !S.chauffes.some(c=>c.id===SEED_CHAUFFE1.chauffe.id) && !S.seedHidden && !Sync.active();
   app.innerHTML=`<header class="top"><div class="title-row"><h1>Journal de chauffes</h1><button class="ghost" id="h-set" type="button" style="flex:0 0 auto">Réglages</button></div></header>
-  <section class="panel">${installHTML()}
+  <section class="panel">${installHTML()}${syncbarHTML()}
     ${seedAvail?`<div class="card"><h3>Chauffe 1 de Raphaël</h3><p class="note">Les relevés et observations de la chauffe 1 (Vivero Richter, octobre 2026), prises par Raphaël, avec la liste des 27 lots, sont prêts à être ajoutés.</p><div class="list"><button class="primary" id="seed-me" type="button">Je suis Raphaël : ajouter à mon nom</button><button class="ghost" id="seed-ok" type="button">Ajouter (notes de Raphaël)</button><button class="ghost" id="seed-no" type="button">Pas maintenant</button></div></div>`:''}
     <button class="primary" id="h-new" type="button">+ Nouvelle chauffe</button>
     <div class="list" id="h-list"></div>
     <div class="card">
-      <h3>Partager avec mes collaborateurs</h3>
+      <h3>${Sync.active()?'Sauvegarde et partage par fichier':'Partager avec mes collaborateurs'}</h3>
+      ${Sync.active()?'<p class="note">Le partage avec l\'équipe est automatique. Ces boutons servent à faire une sauvegarde (à garder dans iCloud Drive) ou à transmettre des photos.</p>':''}
       <p class="note">« Partager mes notes » crée un fichier avec toutes les chauffes et notes de cet appareil, à envoyer par AirDrop, WhatsApp ou mail. « Importer » ajoute les notes reçues aux tiennes, sans rien écraser. Ce fichier sert aussi de sauvegarde : garde-en une copie dans iCloud Drive.</p>
       <div class="row"><button class="ghost" id="h-share" type="button">Partager mes notes</button><label class="ghost filebtn" for="h-imp">Importer</label><input class="vh" id="h-imp" type="file" accept="application/json,.json"></div>
       <div class="status" id="h-st"></div>
@@ -482,7 +601,7 @@ function renderHome(){
     b.onclick=()=>{ const ln=lastDay(ch); go('chauffe',{chauffeId:ch.id, tab:'jour', jour:Math.max(1,ln||1)}); };
     el.appendChild(b);
   });
-  bindInstall();
+  bindInstall(); bindSyncbar();
   $('h-new').onclick=()=>go('new');
   $('h-set').onclick=()=>go('settings');
   if(seedAvail){ $('seed-me').onclick=()=>importSeed(true); $('seed-ok').onclick=()=>importSeed(false); $('seed-no').onclick=async()=>{ S.seedHidden=true; await DB.put('reglages',true,'seedHidden'); render(); }; }
@@ -501,7 +620,7 @@ async function importSeed(isMe){
   const c=JSON.parse(JSON.stringify(sd.chauffe)); c.creeLe=c.creeLe||nowIso();
   await saveChauffe(c);
   const list=sd.entrees.map(e=>Object.assign({},e,{auteurId:SEED_AUTHOR.id, auteurNom:isMe?S.me.nom:SEED_AUTHOR.nom, majLe:e.creeLe||'2026-10-06T00:00:00.000Z'}));
-  await DB.putMany('entrees',list); list.forEach(e=>{ const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); });
+  await DB.putMany('entrees',list); list.forEach(e=>{ const i=S.entrees.findIndex(x=>x.id===e.id); if(i>=0) S.entrees[i]=e; else S.entrees.push(e); Sync.mark('entree',e.id); });
   toast('Chauffe 1 ajoutée.'); render();
 }
 
@@ -665,13 +784,25 @@ function renderSettings(){
       <button class="primary" id="s-ok" type="button">Enregistrer</button>
       <div class="status" id="s-st"></div>
     </div>
+    ${SYNC_AVAILABLE?`<div class="card">
+      <h3>Partage automatique avec l'équipe</h3>
+      <p class="note">Avec le même code d'équipe, les notes, relevés et chauffes de chacun s'échangent tout seuls dès qu'il y a du réseau. Les photos restent sur le téléphone qui les a prises.</p>
+      <div class="field"><label for="s-code">Code d'équipe</label><input id="s-code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="${esc(Sync.code||'')}" placeholder="Code donné par le responsable"><span class="ex">Laisse vide pour travailler seul, sans partage.</span></div>
+      <div class="row"><button class="primary" id="s-code-ok" type="button">Enregistrer le code</button><button class="ghost" id="s-sync" type="button">Synchroniser maintenant</button></div>
+      ${syncbarHTML()}
+      <div class="status" id="s-cst"></div>
+    </div>`:''}
     <div class="card">
       <h3>À propos</h3>
-      <p class="note">Les données sont sur cet appareil uniquement. Si tu effaces les données de Safari ou supprimes l'app de l'écran d'accueil, elles sont perdues : fais régulièrement « Partager mes notes » et garde le fichier dans iCloud Drive.</p>
+      <p class="note">${Sync.active()?'Les notes sont sur cet appareil et partagées avec l\'équipe ; les photos restent seulement sur cet appareil.':'Les données sont sur cet appareil uniquement.'} Si tu effaces les données de Safari ou supprimes l'app de l'écran d'accueil, elles sont perdues : fais régulièrement « Partager mes notes » et garde le fichier dans iCloud Drive.</p>
       <p class="note">Version ${APP_VERSION}.</p>
     </div>
   </section>`;
   $('s-back').onclick=()=>go('home');
+  if(SYNC_AVAILABLE){ bindSyncbar();
+    $('s-code-ok').onclick=async()=>{ const v=$('s-code').value.trim(); await Sync.setCode(v); $('s-cst').textContent=v?'Code enregistré. Envoi et réception des notes en cours…':'Partage automatique désactivé.'; $('s-cst').className='status ok'; };
+    $('s-sync').onclick=()=>{ if(!Sync.code){ $('s-cst').textContent='Indique d\'abord le code d\'équipe.'; $('s-cst').className='status err'; return; } if(Sync.state==='badcode') Sync.state='idle'; Sync.run(); };
+  }
   $('s-ok').onclick=async()=>{ const n=$('s-nom').value.trim(), p=$('s-prev').value.trim()||'le responsable';
     if(!n){ $('s-st').textContent='Indique ton prénom.'; $('s-st').className='status err'; return; }
     S.me=Object.assign({},S.me,{nom:n}); S.prevenir=p; await DB.put('reglages',S.me,'me'); await DB.put('reglages',p,'prevenir');
@@ -687,11 +818,12 @@ function renderChauffe(){
     <div class="title-row"><div class="left"><button class="back" id="c-back" type="button" aria-label="Retour aux chauffes">‹</button><h1>${esc(ch.nom)}</h1></div><div class="daybadge">J<b>${n||'–'}</b> / ${ch.duree}</div></div>
     <div class="progress" aria-hidden="true"><span style="width:${Math.min(100,n/ch.duree*100)}%"></span></div>
     <div class="endzone">${ch.debut?'Début le '+esc(dayLabel(ch,1))+' · ':''}fin de chauffe prévue entre J${ch.finDe} et J${ch.finA}</div>
+    ${syncbarHTML()}
     <nav class="tabs" role="tablist">
       ${[['jour','Saisie'],['hist','Historique'],['lots','Par lot'],['infos','Infos']].map(([k,l])=>`<button role="tab" type="button" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join('')}
     </nav></header>
   <section class="panel" id="c-body"></section>`;
-  $('c-back').onclick=()=>go('home');
+  $('c-back').onclick=()=>go('home'); bindSyncbar();
   app.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; renderChauffe(); window.scrollTo({top:0}); });
   ({jour:tabJour, hist:tabHist, lots:tabLots, infos:tabInfos})[S.tab](ch, $('c-body'));
 }
@@ -1001,9 +1133,9 @@ async function importFile(e, st){
     if(!j || j.format!=='journal-chauffes'){ st.textContent='Ce fichier ne vient pas du Journal de chauffes.'; st.className='status err'; return; }
     let nc=0, ne=0, np=0;
     const newer=(a,b)=>!a || (b.majLe||'')>(a.majLe||'');
-    for(const c of j.chauffes||[]){ const ex=S.chauffes.find(x=>x.id===c.id); if(newer(ex,c)){ await DB.put('chauffes',c); if(ex) Object.assign(ex,c); else S.chauffes.push(c); nc++; } }
+    for(const c of j.chauffes||[]){ const ex=S.chauffes.find(x=>x.id===c.id); if(newer(ex,c)){ await DB.put('chauffes',c); if(ex) Object.assign(ex,c); else S.chauffes.push(c); Sync.mark('chauffe',c.id); nc++; } }
     const batch=[];
-    for(const en of j.entrees||[]){ const ex=S.entrees.find(x=>x.id===en.id); if(newer(ex,en)){ batch.push(en); if(ex) Object.assign(ex,en); else S.entrees.push(en); ne++; } }
+    for(const en of j.entrees||[]){ const ex=S.entrees.find(x=>x.id===en.id); if(newer(ex,en)){ batch.push(en); if(ex) Object.assign(ex,en); else S.entrees.push(en); Sync.mark('entree',en.id); ne++; } }
     if(batch.length) await DB.putMany('entrees',batch);
     for(const [id,u] of Object.entries(j.photos||{})){ const ex=await DB.get('photos',id); if(!ex){ const b=await (await fetch(u)).blob(); await DB.put('photos',b,id); np++; } }
     st.textContent=(nc||ne||np)?`Importé : ${ne} note${ne>1?'s':''}, ${nc} chauffe${nc>1?'s':''}, ${np} photo${np>1?'s':''}${j.exportePar?' (de '+j.exportePar+')':''}.`:'Rien de nouveau dans ce fichier : tout y était déjà.';
@@ -1016,8 +1148,11 @@ async function importFile(e, st){
    DÉMARRAGE + MISE À JOUR HORS LIGNE
    ==================================================================== */
 (async function start(){
-  try{ await loadAll(); }catch(e){ app.innerHTML='<div class="banner" style="margin-top:20px">Le stockage de ce navigateur est bloqué (navigation privée ?). Ouvre l\'app normalement pour enregistrer tes notes.</div>'; return; }
+  S.hashCode=readHashCode();
+  try{ await loadAll(); await Sync.load(); }catch(e){ app.innerHTML='<div class="banner" style="margin-top:20px">Le stockage de ce navigateur est bloqué (navigation privée ?). Ouvre l\'app normalement pour enregistrer tes notes.</div>'; return; }
+  if(S.me && S.hashCode && SYNC_AVAILABLE && !Sync.code){ await Sync.setCode(S.hashCode); toast('Code d\'équipe enregistré : partage automatique activé.'); }
   render();
+  if(Sync.active()) Sync.schedule(600);
 })();
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   navigator.serviceWorker.register('sw.js').then(reg=>{
