@@ -150,6 +150,24 @@ ul.plain{margin:0;padding-left:20px;display:grid;gap:4px}
 .lotact{display:flex;gap:6px;flex-wrap:wrap}
 .lotact .ghost{min-height:40px;padding:6px 12px;flex:0 0 auto;background:var(--surface)}
 .lotact .ghost:disabled{opacity:.35}
+.install{border-color:var(--accent);background:var(--accent-soft)}
+.install .hhead{flex-wrap:nowrap;align-items:flex-start}
+.install .ghost{min-height:36px;padding:4px 10px;flex:0 0 auto}
+.importbox{display:grid;gap:6px;padding:10px;border:1px dashed var(--line);border-radius:10px}
+.xhead{display:flex;gap:8px;align-items:stretch}
+.xhead .filebtn{flex:1 1 auto}
+.helpbtn{flex:0 0 auto;width:46px;border-radius:50%;padding:0;font:700 20px var(--f-body);color:var(--accent);border-color:var(--accent);background:var(--surface)}
+.helpbtn.on{background:var(--accent);color:var(--accent-ink)}
+.xhelp{display:grid;gap:8px;background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:15px}
+.xhelp ol,.xhelp ul{margin:0}
+.xhelp .ghost{justify-self:start}
+.xlist{display:grid;gap:4px;max-height:50vh;overflow:auto;padding-right:4px}
+.xrow{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:8px;background:var(--sunk);font:500 14px var(--f-mono);overflow-wrap:anywhere}
+.xrow input{width:20px;height:20px;flex:0 0 auto;margin:0;accent-color:var(--accent)}
+.two{align-items:end}
+.num::placeholder{font-family:var(--f-body);font-size:16px}
+input[type=time]{min-width:0;max-width:100%;display:block}
+.ex{font-size:13px;color:var(--muted);font-style:italic}
 .confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -172,7 +190,7 @@ ul.plain{margin:0;padding-left:20px;display:grid;gap:4px}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.3.2';
 const SEED_CHAUFFE1 = {"chauffe": {"id": "chauffe-1-vivero-richter-2026", "nom": "Chauffe 1 · Vivero Richter", "duree": 19, "finDe": 17, "finA": 19, "debut": "2026-10-02", "notes": "« 1ª calefacion » du tableau de production 2026/2027 : 27 lots, 990 300 plants. Palox couverts d'une couverture humide et d'un plastique. Mise en eau de tous les palox le 06/10.", "lots": [{"lot": "1", "variete": "CAB", "pg": "SO4", "qte": 102300, "palox": 19}, {"lot": "2", "variete": "SAU", "pg": "SO4", "qte": 57200, "palox": 11}, {"lot": "3", "variete": "SAU", "pg": "SO4", "qte": 32200, "palox": 6}, {"lot": "4", "variete": "SAU", "pg": "SO4", "qte": 21100, "palox": 4}, {"lot": "5", "variete": "SAU", "pg": "SO4", "qte": 25700, "palox": 5}, {"lot": "6", "variete": "CHA", "pg": "SO4", "qte": 60500, "palox": 11}, {"lot": "7", "variete": "TIO", "pg": "SO4", "qte": 12700, "palox": 3}, {"lot": "8", "variete": "VIO", "pg": "SO4", "qte": 13700, "palox": 2}, {"lot": "9", "variete": "SAU", "pg": "5BB", "qte": 212200, "palox": 38}, {"lot": "10", "variete": "SAU", "pg": "5BB", "qte": 43400, "palox": 8}, {"lot": "11", "variete": "SAU", "pg": "5BB", "qte": 29900, "palox": 5}, {"lot": "12", "variete": "SAU", "pg": "5BB", "qte": 31500, "palox": 6}, {"lot": "13", "variete": "CHA", "pg": "SO4", "qte": 14700, "palox": 3}, {"lot": "14", "variete": "SAU", "pg": "5BB", "qte": 33300, "palox": 7}, {"lot": "16", "variete": "CHA", "pg": "SO4", "qte": 15100, "palox": 2}, {"lot": "17", "variete": "CHA", "pg": "SO4", "qte": 19100, "palox": 3}, {"lot": "18", "variete": "PIN", "pg": "SO4", "qte": 2200, "palox": 1}, {"lot": "19", "variete": "ALBA", "pg": "SO4", "qte": 6200, "palox": 1}, {"lot": "20", "variete": "ALBA", "pg": "R110", "qte": 12200, "palox": 3}, {"lot": "21", "variete": "MER", "pg": "R110", "qte": 36400, "palox": 6}, {"lot": "22", "variete": "MER", "pg": "R110", "qte": 38000, "palox": 8}, {"lot": "23", "variete": "CHA", "pg": "R110", "qte": 22000, "palox": null}, {"lot": "24", "variete": "CAB", "pg": "R110", "qte": 8000, "palox": null}, {"lot": "25", "variete": "CAM", "pg": "R110", "qte": 14400, "palox": null}, {"lot": "26", "variete": "SAU", "pg": "R110", "qte": 21800, "palox": null}, {"lot": "27", "variete": "TIO", "pg": "R110", "qte": 92500, "palox": 17}, {"lot": "28", "variete": "CHA", "pg": "R110", "qte": 12000, "palox": 3}], "creeLe": "2026-10-02T12:00:00.000Z", "creePar": "Raphaël"}, "entrees": [{"id": "seed-rel-1-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "heure": "13:46", "tExt": 15, "tInt": 15.5, "creeLe": "2026-10-06T17:15:28.618Z"}, {"id": "seed-obs-1", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "remarque": "Lancement de la chauffe. Relevé 15 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:28.618Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-2-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "heure": "13:46", "tExt": 18, "tInt": 18, "creeLe": "2026-10-06T17:15:34.506Z"}, {"id": "seed-obs-2", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "remarque": "Relevé 18 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:34.506Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-3-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "heure": "13:47", "tExt": 22, "tInt": 22, "creeLe": "2026-10-06T17:15:40.124Z"}, {"id": "seed-obs-3", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "remarque": "Relevé 23 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:40.124Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-4-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "heure": "13:48", "tExt": 26, "tInt": 27, "creeLe": "2026-10-06T17:15:45.624Z"}, {"id": "seed-obs-4", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "remarque": "Relevé 26 °C (lieu de mesure à préciser). Contrôle des plants avec Gérard.", "creeLe": "2026-10-06T17:15:45.624Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-5-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "10:00", "tExt": 28, "tInt": 29, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-rel-5-1", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "14:11", "tExt": 26.5, "tInt": 27.5, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-obs-5", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "remarque": "Mise en eau de tous les palox. Environ 29 °C dans les palox. Palox couverts (couverture humide + plastique).\nBaisse de température du a l’eau dans les palox", "creeLe": "2026-10-06T17:39:48.450Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}]};
 
 /* ---------- Valeurs des observations ---------- */
@@ -282,6 +300,130 @@ function openViewer(photoId, caption, onDelete){
 $('vclose').addEventListener('click',()=>{ $('viewer').hidden=true; viewerCtx=null; });
 $('vdel').addEventListener('click',async()=>{ if(!viewerCtx) return; if(!viewerConfirm){ viewerConfirm=true; $('vdel').textContent='Toucher encore pour confirmer'; return; } const c=viewerCtx; $('viewer').hidden=true; viewerCtx=null; await c.onDelete(); });
 
+
+
+/* ---------- Lecture de fichiers Excel (.xlsx) et CSV, sans bibliothèque ---------- */
+async function unzipEntries(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf); let eocd=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-66000);i--){ if(dv.getUint32(i,true)===0x06054b50){ eocd=i; break; } }
+  if(eocd<0) throw new Error('notzip');
+  const n=dv.getUint16(eocd+10,true); let p=dv.getUint32(eocd+16,true); const out={}; const td=new TextDecoder();
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lho=dv.getUint32(p+42,true);
+    const name=td.decode(u8.subarray(p+46,p+46+nl)); p+=46+nl+el+cl;
+    out[name]={method,csize,lho};
+  }
+  out.__read=async name=>{ const e=out[name]; if(!e) return null;
+    const ln=dv.getUint16(e.lho+26,true), le=dv.getUint16(e.lho+28,true); const data=u8.subarray(e.lho+30+ln+le, e.lho+30+ln+le+e.csize);
+    if(e.method===0) return td.decode(data);
+    if(e.method!==8) throw new Error('method');
+    const ds=new DecompressionStream('deflate-raw'); const stream=new Blob([data]).stream().pipeThrough(ds); return await new Response(stream).text(); };
+  return out;
+}
+const xmlDoc = t => new DOMParser().parseFromString(t,'application/xml');
+const byTag = (node,tag) => Array.from(node.getElementsByTagNameNS('*',tag));
+function colIndex(ref){ const m=/^([A-Z]+)/.exec(ref||''); if(!m) return -1; let n=0; for(const ch of m[1]) n=n*26+(ch.charCodeAt(0)-64); return n-1; }
+async function readXlsx(buf){
+  const z=await unzipEntries(buf);
+  const shared=[]; const sst=await z.__read('xl/sharedStrings.xml');
+  if(sst) byTag(xmlDoc(sst),'si').forEach(si=>shared.push(byTag(si,'t').map(t=>t.textContent).join('')));
+  const wb=xmlDoc(await z.__read('xl/workbook.xml')); const rels=xmlDoc(await z.__read('xl/_rels/workbook.xml.rels')||'<x/>');
+  const relMap={}; byTag(rels,'Relationship').forEach(r=>relMap[r.getAttribute('Id')]=r.getAttribute('Target'));
+  const sheets=[];
+  for(const sh of byTag(wb,'sheet')){
+    const rid=sh.getAttribute('r:id')||sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
+    let target=relMap[rid]||''; target=target.replace(/^\//,''); if(!target.startsWith('xl/')) target='xl/'+target;
+    sheets.push({name:sh.getAttribute('name'), path:target, state:sh.getAttribute('state')});
+  }
+  return { sheets: sheets.filter(s=>s.state!=='hidden'&&s.state!=='veryHidden'), readSheet: async sh=>{
+    const x=await z.__read(sh.path); if(!x) return [];
+    const rows=[];
+    byTag(xmlDoc(x),'row').forEach(r=>{ const ri=Number(r.getAttribute('r'))-1; const row=[];
+      byTag(r,'c').forEach((c,ci)=>{ const ref=c.getAttribute('r'); const ix=ref?colIndex(ref):ci; const t=c.getAttribute('t'); const v=byTag(c,'v')[0]; let val=null;
+        if(t==='s'&&v) val=shared[Number(v.textContent)]; else if(t==='inlineStr') val=byTag(c,'t').map(e=>e.textContent).join(''); else if(t==='b'&&v) val=v.textContent==='1'; else if(v){ const tx=v.textContent; val=(t==='str'||t==='e')?tx:(tx!==''&&isFinite(Number(tx))?Number(tx):tx); }
+        if(ix>=0) row[ix]=val; });
+      rows[ri>=0?ri:rows.length]=row; });
+    return Array.from(rows,r=>r||[]);
+  }};
+}
+function parseCsv(text){
+  const first=text.split(/\r?\n/,1)[0]; const sep=(first.split(';').length>first.split(',').length)?';':(first.includes('\t')?'\t':',');
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){ const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true; else if(ch===sep){ row.push(cur); cur=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; } else cur+=ch; }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.map(r=>r.map(v=>{ const t=v.trim(); return /^-?\d+([.,]\d+)?$/.test(t)?Number(t.replace(',','.')):t; }));
+}
+const normH = v => String(v==null?'':v).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const strictNum = v => { if(typeof v==='number') return Number.isFinite(v)?v:null; const t=String(v==null?'':v).trim().replace(/\s/g,''); return /^-?\d+([.,]\d+)?$/.test(t)?Number(t.replace(',','.')):null; };
+const COLS = {
+  lot:['lote','lot','lots','lotes','nlot','nolot','nlote','numlot','numerolot','numerodelot','lotno','lotnumber'],
+  variete:['variedad','variete','varietes','cepage','cepages','var','variety','cultivar','vari'],
+  pg:['pi','portegreffe','portegreffes','pg','portainjerto','patron','rootstock'],
+  qteLot:['qtelote','qtelot','qteparlot','quantitelot','quantiteparlot','totallot','cantidadlote','qtelots','plantslot'],
+  qte:['qte','quantite','qtediaria','cantidad','plants','nbplants','nombredeplants','quantiteplants','qteplants','quantiteplant'],
+  palox:['npaloxtotal','paloxtotal','palox','nbpalox','npalox','nombredepalox','bins','nbins','numeropalox']
+};
+function detectLots(rows){
+  let best=null;
+  for(let r=0;r<Math.min(rows.length,25);r++){
+    const map={}; (rows[r]||[]).forEach((h,ci)=>{ const n=normH(h); if(!n) return; for(const [k,list] of Object.entries(COLS)) if(map[k]===undefined && list.includes(n)) map[k]=ci; });
+    const score=Object.keys(map).length;
+    if(map.lot!==undefined && (!best||score>best.score)) best={row:r,map,score};
+  }
+  if(!best) return null;
+  const M=best.map, lots=[], byLot={};
+  for(let r=best.row+1;r<rows.length;r++){
+    const row=rows[r]||[]; let lot=row[M.lot]; if(lot==null||lot==='') continue;
+    lot=typeof lot==='number'?String(Math.round(lot*100)/100):String(lot).trim();
+    if(!/\d/.test(lot) || /total/i.test(lot) || lot.length>15) continue;
+    let L=byLot[lot]; if(!L){ L=byLot[lot]={lot, variete:'', pg:'', qteLot:null, qteSum:0, qteN:0, palox:null, rows:0}; lots.push(L); }
+    L.rows++;
+    const g=k=>M[k]!==undefined?row[M[k]]:null;
+    if(!L.variete && g('variete')!=null && String(g('variete')).trim()) L.variete=String(g('variete')).trim();
+    if(!L.pg && g('pg')!=null && String(g('pg')).trim()) L.pg=String(g('pg')).trim();
+    const ql=strictNum(g('qteLot')); if(ql!=null&&ql>0) L.qteLot=ql;
+    const qd=strictNum(g('qte')); if(qd!=null){ L.qteSum+=qd; L.qteN++; }
+    const px=strictNum(g('palox')); if(px!=null&&px>0) L.palox=px;
+  }
+  return { header:best.row+1, map:M, headers:rows[best.row], lots:lots.map(L=>({lot:L.lot, variete:L.variete, pg:L.pg, qte:L.qteLot!=null?L.qteLot:(L.qteN?L.qteSum:null), palox:L.palox, rows:L.rows})) };
+}
+
+/* ---------- Aide à l'installation ---------- */
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installPrompt=e; if(S.view==='home'||!S.me) render(); });
+window.addEventListener('appinstalled',()=>{ installPrompt=null; toast('Application installée.'); render(); });
+function envInfo(){
+  const ua=navigator.userAgent||''; const ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const android=/Android/i.test(ua); const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  const inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|; wv\)|GSA\//i.test(ua);
+  const iosOther=ios&&/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+  const desktopMode=coarse && window.innerWidth>=800 && Math.min(screen.width,screen.height)<600;
+  return {ios,android,standalone,inApp,iosOther,desktopMode};
+}
+function installHTML(){
+  const E=envInfo(); let out='';
+  if(E.desktopMode) out+=`<div class="banner"><span><b>Affichage trop petit ?</b> Le navigateur est en mode « ordinateur ». Menu ⋮ en haut à droite → décoche <b>« Version pour ordinateur »</b> (ou « Site pour ordinateur »).</span></div>`;
+  if(E.standalone) return out;
+  let dismissed=false; try{ dismissed=localStorage.getItem('chauffes:installHidden')==='1'; }catch(e){}
+  if(dismissed && !E.desktopMode) return out;
+  let how='';
+  if(E.inApp) how= E.ios ? 'Ce lien est ouvert dans une autre app (WhatsApp, Instagram…). Touche <b>⋯ ou la boussole</b> pour l\'ouvrir dans <b>Safari</b>, puis installe-la depuis Safari.' : 'Ce lien est ouvert dans une autre app (WhatsApp…). Touche le menu <b>⋮</b> → <b>« Ouvrir dans Chrome »</b>, puis installe-la depuis Chrome.';
+  else if(E.iosOther) how='Sur iPhone et iPad, l\'installation se fait depuis <b>Safari</b> : copie l\'adresse et ouvre-la dans Safari.';
+  else if(E.ios) how='Touche <b>Partager</b> (carré avec une flèche ⬆︎) puis <b>« Sur l\'écran d\'accueil »</b> → Ajouter. Ensuite, ouvre toujours l\'app par son icône.';
+  else if(E.android) how= installPrompt ? 'Un seul toucher suffit :' : 'Menu <b>⋮</b> en haut à droite de Chrome → <b>« Installer l\'application »</b> ou <b>« Ajouter à l\'écran d\'accueil »</b>. Ensuite, ouvre toujours l\'app par son icône.';
+  else how= installPrompt ? 'Tu peux l\'installer sur cet appareil :' : 'Ouvre cette adresse sur ton téléphone pour l\'installer.';
+  out+=`<div class="card install"><div class="hhead"><h3>Installer l'app sur ce téléphone</h3><button class="ghost" type="button" id="inst-x" aria-label="Masquer">✕</button></div><p class="note" style="color:var(--fg)">${how}</p>${installPrompt&&!E.inApp?'<button class="primary" type="button" id="inst-go">Installer l\'app</button>':''}<p class="note">Une fois installée, elle fonctionne sans internet.</p></div>`;
+  return out;
+}
+function bindInstall(){
+  const x=$('inst-x'); if(x) x.onclick=()=>{ try{ localStorage.setItem('chauffes:installHidden','1'); }catch(e){} render(); };
+  const g=$('inst-go'); if(g) g.onclick=async()=>{ if(!installPrompt) return; installPrompt.prompt(); try{ await installPrompt.userChoice; }catch(e){} installPrompt=null; render(); };
+}
+
 /* ====================================================================
    RENDU
    ==================================================================== */
@@ -298,15 +440,16 @@ function go(view, extra){ Object.assign(S,{view},extra||{}); render(); window.sc
 /* ---------- Premier lancement ---------- */
 function renderWelcome(){
   app.innerHTML=`<header class="top"><div class="title-row"><h1>Journal de chauffes</h1></div></header>
-  <section class="panel">
+  <section class="panel">${installHTML()}
     <div class="card">
       <h2 style="margin:0">Bienvenue</h2>
       <p class="note">Cette application fonctionne sans internet : tout est enregistré sur cet appareil. Chaque note est signée avec ton prénom, pour que tes collaborateurs sachent qui l'a prise.</p>
-      <div class="field"><label for="w-nom">Ton prénom</label><input id="w-nom" type="text" autocomplete="given-name" placeholder="Raphaël"></div>
+      <div class="field"><label for="w-nom">Ton prénom</label><input id="w-nom" type="text" autocomplete="given-name" placeholder="Prénom"><span class="ex">Ex. : Juan. Il apparaîtra sur chacune de tes notes.</span></div>
       <button class="primary" id="w-ok" type="button">Commencer</button>
       <div class="status" id="w-st"></div>
     </div>
   </section>`;
+  bindInstall();
   $('w-ok').onclick=async()=>{ const n=$('w-nom').value.trim(); if(!n){ $('w-st').textContent='Indique ton prénom.'; $('w-st').className='status err'; return; }
     S.me={id:uid(), nom:n}; await DB.put('reglages',S.me,'me'); try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){} go('home'); };
 }
@@ -316,7 +459,7 @@ function renderHome(){
   const list=liveChauffes();
   const seedAvail = SEED_CHAUFFE1 && !S.chauffes.some(c=>c.id===SEED_CHAUFFE1.chauffe.id) && !S.seedHidden;
   app.innerHTML=`<header class="top"><div class="title-row"><h1>Journal de chauffes</h1><button class="ghost" id="h-set" type="button" style="flex:0 0 auto">Réglages</button></div></header>
-  <section class="panel">
+  <section class="panel">${installHTML()}
     ${seedAvail?`<div class="card"><h3>Chauffe 1 de Raphaël</h3><p class="note">Les relevés et observations de la chauffe 1 (Vivero Richter, octobre 2026), prises par Raphaël, avec la liste des 27 lots, sont prêts à être ajoutés.</p><div class="list"><button class="primary" id="seed-me" type="button">Je suis Raphaël : ajouter à mon nom</button><button class="ghost" id="seed-ok" type="button">Ajouter (notes de Raphaël)</button><button class="ghost" id="seed-no" type="button">Pas maintenant</button></div></div>`:''}
     <button class="primary" id="h-new" type="button">+ Nouvelle chauffe</button>
     <div class="list" id="h-list"></div>
@@ -339,6 +482,7 @@ function renderHome(){
     b.onclick=()=>{ const ln=lastDay(ch); go('chauffe',{chauffeId:ch.id, tab:'jour', jour:Math.max(1,ln||1)}); };
     el.appendChild(b);
   });
+  bindInstall();
   $('h-new').onclick=()=>go('new');
   $('h-set').onclick=()=>go('settings');
   if(seedAvail){ $('seed-me').onclick=()=>importSeed(true); $('seed-ok').onclick=()=>importSeed(false); $('seed-no').onclick=async()=>{ S.seedHidden=true; await DB.put('reglages',true,'seedHidden'); render(); }; }
@@ -370,26 +514,55 @@ function renderChauffeForm(){
   app.innerHTML=`<header class="top"><div class="title-row"><div class="left"><button class="back" id="f-back" type="button" aria-label="Retour">‹</button><h1>${editing?'Modifier la chauffe':'Nouvelle chauffe'}</h1></div></div></header>
   <section class="panel">
     <form class="card" id="f-form" autocomplete="off">
-      <div class="field"><label for="f-nom">Nom de la chauffe</label><input id="f-nom" type="text" value="${esc(c.nom)}" placeholder="Chauffe 2 · Vivero Richter"></div>
+      <div class="field"><label for="f-nom">Nom de la chauffe</label><input id="f-nom" type="text" value="${esc(c.nom)}" placeholder="Nom de la chauffe"><span class="ex">Ex. : Chauffe 1 · saison 2027</span></div>
       <div class="field"><label for="f-debut">Date de début <span class="hint">(facultatif : les jours afficheront leur date)</span></label><input id="f-debut" type="date" value="${esc(c.debut||'')}"></div>
       <div class="three">
         <div class="field"><label for="f-duree">Durée (jours)</label><input id="f-duree" class="num" type="text" inputmode="numeric" value="${c.duree}"></div>
         <div class="field"><label for="f-de">Fin entre J…</label><input id="f-de" class="num" type="text" inputmode="numeric" value="${c.finDe}"></div>
         <div class="field"><label for="f-a">… et J</label><input id="f-a" class="num" type="text" inputmode="numeric" value="${c.finA}"></div>
       </div>
-      <div class="field"><label for="f-notes">Infos sur la chauffe <span class="hint">(facultatif)</span></label><textarea id="f-notes" placeholder="Salle, palox, consignes…">${esc(c.notes||'')}</textarea></div>
+      <span class="ex">Ex. : une chauffe de 19 jours qui se termine entre J17 et J19.</span>
+      <div class="field"><label for="f-notes">Infos sur la chauffe <span class="hint">(facultatif)</span></label><textarea id="f-notes" placeholder="Informations utiles sur cette chauffe">${esc(c.notes||'')}</textarea><span class="ex">Ex. : salle 2, 40 palox, couverture humide + plastique.</span></div>
       <div class="field">
         <span class="lab">Lots de la chauffe <span class="hint">(facultatif)</span></span>
+        <div class="importbox">
+          <div class="xhead"><label class="ghost filebtn" for="x-file">Importer les lots depuis un fichier Excel</label><button class="ghost helpbtn" type="button" id="x-help-btn" aria-expanded="false" aria-controls="x-help" aria-label="Comment importer un fichier Excel">?</button></div>
+          <input class="vh" id="x-file" type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv">
+          <div class="xhelp" id="x-help" hidden>
+            <b>Importer les lots depuis Excel</b>
+            <ol class="steps">
+              <li>Touche <b>« Importer les lots depuis un fichier Excel »</b> et choisis ton fichier (.xlsx ou .csv) dans Fichiers, iCloud Drive ou Téléchargements.</li>
+              <li>Si le fichier a plusieurs onglets, choisis celui de la saison dans le menu <b>« Onglet du fichier »</b>.</li>
+              <li>L'app affiche les lots trouvés, tous cochés. <b>Décoche ceux qui ne sont pas dans cette chauffe.</b></li>
+              <li>Touche <b>« Ajouter les lots cochés »</b>. Vérifie la liste (tu peux déplacer ou modifier un lot), puis touche <b>« Créer la chauffe »</b> ou <b>« Enregistrer »</b>.</li>
+            </ol>
+            <b>Ce que le tableau doit contenir</b>
+            <ul class="plain">
+              <li>Une ligne de <b>titres</b> en haut des colonnes, avec au moins une colonne <b>lot</b> (ou <i>lote</i>).</li>
+              <li>Colonnes reconnues : <b>lot / lote</b> · <b>variété / variedad</b> · <b>porte-greffe / PI</b> · <b>plants, qte / lote, qte diaria</b> · <b>palox, N° palox total</b>.</li>
+              <li>Un lot sur plusieurs lignes (plusieurs jours) est regroupé en une seule ligne.</li>
+            </ul>
+            <b>Bon à savoir</b>
+            <ul class="plain">
+              <li>Les <b>couleurs</b> des cellules ne sont pas lues : c'est à toi de décocher les lots des autres chauffes.</li>
+              <li>L'ancien format <b>.xls</b> n'est pas lu : enregistre d'abord le fichier en <b>.xlsx</b> depuis Excel, Numbers ou Google Sheets.</li>
+              <li>Un lot qui existe déjà dans la chauffe est marqué <b>« remplace »</b> : ses valeurs seront mises à jour.</li>
+            </ul>
+            <button class="ghost" type="button" id="x-help-close">J'ai compris</button>
+          </div>
+          <div id="x-prev"></div>
+        </div>
         <div class="list" id="f-lots"></div>
-        <div class="three">
-          <div class="field"><label for="l-n">N° lot</label><input id="l-n" type="text" inputmode="numeric" placeholder="9"></div>
-          <div class="field"><label for="l-v">Variété</label><input id="l-v" type="text" placeholder="SAU"></div>
-          <div class="field"><label for="l-p">Porte-greffe</label><input id="l-p" type="text" placeholder="5BB"></div>
+        <span class="lab" style="margin-top:6px">Ajouter un lot à la main</span>
+        <div class="two">
+          <div class="field"><label for="l-n">N° du lot</label><input id="l-n" type="text" inputmode="numeric" placeholder="Numéro"><span class="ex">Ex. : 12</span></div>
+          <div class="field"><label for="l-v">Variété</label><input id="l-v" type="text" placeholder="Variété"><span class="ex">Ex. : SYR (Syrah)</span></div>
         </div>
         <div class="two">
-          <div class="field"><label for="l-q">Plants <span class="hint">(facult.)</span></label><input id="l-q" class="num" type="text" inputmode="numeric"></div>
-          <div class="field"><label for="l-x">Palox <span class="hint">(facult., ex. 2,5)</span></label><input id="l-x" class="num" type="text" inputmode="decimal" placeholder="2,5"></div>
+          <div class="field"><label for="l-p">Porte-greffe</label><input id="l-p" type="text" placeholder="Porte-greffe"><span class="ex">Ex. : SO4</span></div>
+          <div class="field"><label for="l-x">Palox <span class="hint">(facult.)</span></label><input id="l-x" class="num" type="text" inputmode="decimal" placeholder="Nombre"><span class="ex">Ex. : 4 ou 2,5</span></div>
         </div>
+        <div class="field"><label for="l-q">Plants <span class="hint">(facultatif)</span></label><input id="l-q" class="num" type="text" inputmode="numeric" placeholder="Nombre de plants du lot"><span class="ex">Ex. : 25000</span></div>
         <div class="row"><button class="ghost" id="l-add" type="button">+ Ajouter ce lot</button><button class="ghost" id="l-cancel" type="button" hidden>Annuler</button></div>
       </div>
       <button class="primary" type="submit">${editing?'Enregistrer':'Créer la chauffe'}</button>
@@ -415,6 +588,44 @@ function renderChauffeForm(){
       act.lastChild.classList.add('danger');
       d.append(s,act); el.appendChild(d); }); };
   drawLots();
+
+  // ---- Import Excel ----
+  const toggleHelp=open=>{ const h=$('x-help'), b=$('x-help-btn'); const o=open===undefined?h.hidden:open; h.hidden=!o; b.setAttribute('aria-expanded',o); b.classList.toggle('on',o); };
+  $('x-help-btn').onclick=()=>toggleHelp(); $('x-help-close').onclick=()=>{ toggleHelp(false); $('x-help-btn').focus(); };
+  let xbook=null;
+  const xStatus=(t,cls)=>{ $('f-st').textContent=t; $('f-st').className='status'+(cls?' '+cls:''); };
+  const colName=(h,i)=>{ const t=String(h==null?'':h).replace(/\s+/g,' ').trim(); return t?'« '+t+' »':'colonne '+(i+1); };
+  async function showSheet(idx){
+    const prev=$('x-prev'); const sh=xbook.sheets[idx]; const rows=await xbook.read(sh);
+    const res=detectLots(rows);
+    if(!res||!res.lots.length){ prev.innerHTML=(xbook.sheets.length>1?sheetSel(idx):'')+'<div class="alertbox">Aucun lot trouvé dans '+(sh.name?'l\'onglet « '+esc(sh.name)+' »':'ce fichier')+'. Il faut une colonne dont le titre est « lot » ou « lote ».</div><button class="ghost" type="button" id="x-cancel">Fermer</button>'; bindSheetSel(); $('x-cancel').onclick=closeImport; return; }
+    const M=res.map, H=res.headers;
+    const found=[['lot','Lot'],['variete','Variété'],['pg','Porte-greffe'],['qteLot','Plants par lot'],['qte','Plants'],['palox','Palox']].filter(([k])=>M[k]!==undefined).map(([k,l])=>l+' = '+esc(colName(H[M[k]],M[k]))).join(' · ');
+    const existing=new Set(formLots.map(l=>String(l.lot)));
+    prev.innerHTML=(xbook.sheets.length>1?sheetSel(idx):'')+
+      `<div class="card" style="gap:10px;padding:12px"><b>${res.lots.length} lot${res.lots.length>1?'s':''} trouvé${res.lots.length>1?'s':''}</b><span class="hint">Colonnes lues (ligne ${res.header}) : ${found}. Décoche les lots qui ne font pas partie de cette chauffe.</span>
+      <div class="row"><button class="ghost" type="button" id="x-all">Tout cocher</button><button class="ghost" type="button" id="x-none">Tout décocher</button></div>
+      <div class="xlist">${res.lots.map((l,i)=>`<label class="xrow"><input type="checkbox" data-i="${i}" checked><span>${esc(lotText(l))}${l.rows>1?' <span class="hint">('+l.rows+' lignes)</span>':''}${existing.has(String(l.lot))?' <span class="chip">remplace</span>':''}</span></label>`).join('')}</div>
+      <div class="row"><button class="primary" type="button" id="x-ok">Ajouter les lots cochés</button><button class="ghost" type="button" id="x-cancel">Annuler</button></div></div>`;
+    bindSheetSel();
+    const boxes=()=>Array.from(prev.querySelectorAll('input[type=checkbox]'));
+    $('x-all').onclick=()=>boxes().forEach(b=>b.checked=true); $('x-none').onclick=()=>boxes().forEach(b=>b.checked=false);
+    $('x-cancel').onclick=closeImport;
+    $('x-ok').onclick=()=>{ const pick=boxes().filter(b=>b.checked).map(b=>res.lots[Number(b.dataset.i)]); if(!pick.length){ xStatus('Coche au moins un lot.','err'); return; }
+      let add=0, upd=0; pick.forEach(l=>{ const o={lot:l.lot, variete:l.variete, pg:l.pg, qte:l.qte, palox:l.palox}; const i=formLots.findIndex(x=>String(x.lot)===String(l.lot)); if(i>=0){ formLots[i]=o; upd++; } else { formLots.push(o); add++; } });
+      closeImport(); drawLots(); xStatus(`${add} lot${add>1?'s':''} ajouté${add>1?'s':''}${upd?', '+upd+' remplacé'+(upd>1?'s':''):''}. Vérifie la liste puis touche « ${editing?'Enregistrer':'Créer la chauffe'} ».`,'ok'); };
+  }
+  function sheetSel(idx){ return `<div class="field"><label for="x-sheet">Onglet du fichier</label><select id="x-sheet">${xbook.sheets.map((s,i)=>`<option value="${i}"${i===idx?' selected':''}>${esc(s.name||('Feuille '+(i+1)))}</option>`).join('')}</select></div>`; }
+  function bindSheetSel(){ const sel=$('x-sheet'); if(sel) sel.onchange=()=>showSheet(Number(sel.value)); }
+  function closeImport(){ xbook=null; $('x-prev').innerHTML=''; }
+  $('x-file').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; xStatus('Lecture du fichier…');
+    try{
+      if(/\.csv$/i.test(f.name)||f.type==='text/csv'){ const rows=parseCsv(await f.text()); xbook={sheets:[{name:f.name}], read:async()=>rows}; }
+      else { if(typeof DecompressionStream==='undefined'){ xStatus('Ce navigateur est trop ancien pour lire les fichiers Excel. Mets à jour le téléphone, ou enregistre le fichier en .csv.','err'); return; }
+        const wb=await readXlsx(await f.arrayBuffer()); if(!wb.sheets.length) throw new Error('nosheet'); xbook={sheets:wb.sheets, read:wb.readSheet}; }
+      xStatus(''); let start=0; for(let i=0;i<xbook.sheets.length;i++){ const r=detectLots(await xbook.read(xbook.sheets[i])); if(r&&r.lots.length){ start=i; break; } } await showSheet(start);
+    }catch(err){ xStatus(/\.xls$/i.test(f.name)?'Ancien format .xls : ouvre le fichier dans Excel ou Numbers et enregistre-le en .xlsx.':'Fichier illisible. Utilise un fichier Excel .xlsx ou un .csv.','err'); }
+  };
   $('l-cancel').onclick=()=>{ resetLotInputs(); drawLots(); };
   $('l-add').onclick=()=>{ const lot=$('l-n').value.trim(); if(!lot){ $('f-st').textContent='Indique au moins le numéro du lot.'; $('f-st').className='status err'; return; }
     const xs=$('l-x').value.trim(), qs=$('l-q').value.trim(); const palox=num(xs), qte=num(qs);
@@ -449,8 +660,8 @@ function renderSettings(){
   app.innerHTML=`<header class="top"><div class="title-row"><div class="left"><button class="back" id="s-back" type="button" aria-label="Retour">‹</button><h1>Réglages</h1></div></div></header>
   <section class="panel">
     <div class="card">
-      <div class="field"><label for="s-nom">Ton prénom <span class="hint">(signe tes notes)</span></label><input id="s-nom" type="text" value="${esc(S.me.nom)}"></div>
-      <div class="field"><label for="s-prev">Personne à prévenir en cas d'alerte</label><input id="s-prev" type="text" value="${esc(S.prevenir)}"></div>
+      <div class="field"><label for="s-nom">Ton prénom <span class="hint">(signe tes notes)</span></label><input id="s-nom" type="text" value="${esc(S.me.nom)}" placeholder="Prénom"></div>
+      <div class="field"><label for="s-prev">Personne à prévenir en cas d'alerte</label><input id="s-prev" type="text" value="${esc(S.prevenir)}" placeholder="Prénom du responsable"><span class="ex">Ex. : le chef de culture ou le responsable de la pépinière.</span></div>
       <button class="primary" id="s-ok" type="button">Enregistrer</button>
       <div class="status" id="s-st"></div>
     </div>
@@ -502,16 +713,17 @@ function tabJour(ch, body){
         <span class="lab">Relevés de température</span>
         <span class="hint">Ajoute un relevé chaque fois que tu regardes le thermomètre.</span>
         <div class="list" id="j-rels"></div>
-        <div class="three">
-          <div class="field"><label for="j-h">Heure</label><input id="j-h" type="time" value="${hhmm()}"></div>
-          <div class="field"><label for="j-ext">Ext. palox (°C)</label><input id="j-ext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="28"></div>
-          <div class="field"><label for="j-int">Dans palox (°C)</label><input id="j-int" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="29"></div>
+        <div class="field"><label for="j-h">Heure du relevé</label><input id="j-h" type="time" value="${hhmm()}"></div>
+        <div class="two">
+          <div class="field"><label for="j-ext">Hors palox (°C)</label><input id="j-ext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
+          <div class="field"><label for="j-int">Dans palox (°C)</label><input id="j-int" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
         </div>
+        <span class="ex">Ex. : 14h30 · 26 dehors · 27,5 dedans. Une seule des deux températures suffit.</span>
         <button class="primary" id="j-addrel" type="button">+ Ajouter ce relevé</button>
       </div>
       ${OBS_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('seg-'+k,k,st[k])}</div>`).join('')}
       <div class="field"><span class="lab">Photos</span><div class="photos" id="j-ph"></div><label class="ghost filebtn" for="j-phin">+ Ajouter une photo</label><input class="vh" id="j-phin" type="file" accept="image/*" multiple></div>
-      <div class="field"><label for="j-rem">Action du jour / remarques</label><textarea id="j-rem" placeholder="Mise en eau, réhumidification de la couverture…">${esc(mine?mine.remarque||'':'')}</textarea></div>
+      <div class="field"><label for="j-rem">Action du jour / remarques</label><textarea id="j-rem" placeholder="Ce que tu as fait ou remarqué aujourd'hui">${esc(mine?mine.remarque||'':'')}</textarea><span class="ex">Ex. : mise en eau des palox, couverture réhumidifiée.</span></div>
       <div id="j-alert" class="alertbox" hidden></div>
       <button class="primary" type="submit">Enregistrer la journée</button>
       <div class="status" id="j-st" role="status"></div>
@@ -651,16 +863,17 @@ function tabLots(ch, body){
     <form class="card" id="p-form" autocomplete="off">
       <div class="two">
         <div class="field"><label for="p-jour">Jour</label><select id="p-jour">${Array.from({length:ch.duree},(_,i)=>`<option value="${i+1}"${i+1===S.jour?' selected':''}>J${i+1}${ch.debut?' · '+esc(dayShort(ch,i+1)):''}</option>`).join('')}</select></div>
-        <div class="field"><label for="p-lot">N° de lot</label><input id="p-lot" type="text" inputmode="numeric" list="p-lotsref" placeholder="${lots[0]?esc(lots[0].lot):'9'}"><datalist id="p-lotsref">${lots.map(l=>`<option value="${esc(l.lot)}">Lot ${esc(l.lot)} · ${esc([l.variete,l.pg].filter(Boolean).join(' / '))}</option>`).join('')}</datalist></div>
+        <div class="field"><label for="p-lot">N° de lot</label><input id="p-lot" type="text" inputmode="numeric" list="p-lotsref" placeholder="Numéro"><datalist id="p-lotsref">${lots.map(l=>`<option value="${esc(l.lot)}">Lot ${esc(l.lot)} · ${esc([l.variete,l.pg].filter(Boolean).join(' / '))}</option>`).join('')}</datalist></div>
       </div>
       <div class="two">
-        <div class="field"><label for="p-var">Variété</label><input id="p-var" type="text"></div>
-        <div class="field"><label for="p-pg">Porte-greffe</label><input id="p-pg" type="text"></div>
+        <div class="field"><label for="p-var">Variété</label><input id="p-var" type="text" placeholder="Variété"></div>
+        <div class="field"><label for="p-pg">Porte-greffe</label><input id="p-pg" type="text" placeholder="Porte-greffe"></div>
       </div>
-      <div class="field"><label for="p-nb">Nombre de plants regardés</label><input id="p-nb" class="num" type="text" inputmode="numeric" placeholder="5"></div>
+      <span class="ex">Ex. : lot 12 · SYR · SO4. Si le lot est dans la liste de la chauffe, variété et porte-greffe se remplissent seuls.</span>
+      <div class="field"><label for="p-nb">Nombre de plants regardés</label><input id="p-nb" class="num" type="text" inputmode="numeric" placeholder="Nombre"><span class="ex">Ex. : 5</span></div>
       ${LOT_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('pseg-'+k,k,'')}</div>`).join('')}
       <div class="field"><span class="lab">Photos</span><div class="photos" id="p-ph"></div><label class="ghost filebtn" for="p-phin">+ Ajouter une photo</label><input class="vh" id="p-phin" type="file" accept="image/*" multiple></div>
-      <div class="field"><label for="p-rem">Remarques</label><input id="p-rem" type="text" placeholder="Palox du fond, cal visible…"></div>
+      <div class="field"><label for="p-rem">Remarques</label><input id="p-rem" type="text" placeholder="Ce que tu as remarqué sur ce lot"><span class="ex">Ex. : palox du fond, cal visible sur la moitié des plants.</span></div>
       <button class="primary" type="submit">Ajouter ce contrôle</button>
       <div class="status" id="p-st"></div>
     </form>
