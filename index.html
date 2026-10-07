@@ -144,6 +144,12 @@ ul.plain{margin:0;padding-left:20px;display:grid;gap:4px}
 .lotsTable th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .scrollx{overflow-x:auto}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:60;max-width:90vw;text-align:center}
+.lotrow{display:grid;gap:8px;background:var(--sunk);border-radius:8px;padding:10px;border:1px solid transparent}
+.lotrow.editing{border-color:var(--accent);background:var(--accent-soft)}
+.lotrow .lt{font:500 15px var(--f-mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.lotact{display:flex;gap:6px;flex-wrap:wrap}
+.lotact .ghost{min-height:40px;padding:6px 12px;flex:0 0 auto;background:var(--surface)}
+.lotact .ghost:disabled{opacity:.35}
 .confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -166,7 +172,7 @@ ul.plain{margin:0;padding-left:20px;display:grid;gap:4px}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const SEED_CHAUFFE1 = {"chauffe": {"id": "chauffe-1-vivero-richter-2026", "nom": "Chauffe 1 · Vivero Richter", "duree": 19, "finDe": 17, "finA": 19, "debut": "2026-10-02", "notes": "« 1ª calefacion » du tableau de production 2026/2027 : 27 lots, 990 300 plants. Palox couverts d'une couverture humide et d'un plastique. Mise en eau de tous les palox le 06/10.", "lots": [{"lot": "1", "variete": "CAB", "pg": "SO4", "qte": 102300, "palox": 19}, {"lot": "2", "variete": "SAU", "pg": "SO4", "qte": 57200, "palox": 11}, {"lot": "3", "variete": "SAU", "pg": "SO4", "qte": 32200, "palox": 6}, {"lot": "4", "variete": "SAU", "pg": "SO4", "qte": 21100, "palox": 4}, {"lot": "5", "variete": "SAU", "pg": "SO4", "qte": 25700, "palox": 5}, {"lot": "6", "variete": "CHA", "pg": "SO4", "qte": 60500, "palox": 11}, {"lot": "7", "variete": "TIO", "pg": "SO4", "qte": 12700, "palox": 3}, {"lot": "8", "variete": "VIO", "pg": "SO4", "qte": 13700, "palox": 2}, {"lot": "9", "variete": "SAU", "pg": "5BB", "qte": 212200, "palox": 38}, {"lot": "10", "variete": "SAU", "pg": "5BB", "qte": 43400, "palox": 8}, {"lot": "11", "variete": "SAU", "pg": "5BB", "qte": 29900, "palox": 5}, {"lot": "12", "variete": "SAU", "pg": "5BB", "qte": 31500, "palox": 6}, {"lot": "13", "variete": "CHA", "pg": "SO4", "qte": 14700, "palox": 3}, {"lot": "14", "variete": "SAU", "pg": "5BB", "qte": 33300, "palox": 7}, {"lot": "16", "variete": "CHA", "pg": "SO4", "qte": 15100, "palox": 2}, {"lot": "17", "variete": "CHA", "pg": "SO4", "qte": 19100, "palox": 3}, {"lot": "18", "variete": "PIN", "pg": "SO4", "qte": 2200, "palox": 1}, {"lot": "19", "variete": "ALBA", "pg": "SO4", "qte": 6200, "palox": 1}, {"lot": "20", "variete": "ALBA", "pg": "R110", "qte": 12200, "palox": 3}, {"lot": "21", "variete": "MER", "pg": "R110", "qte": 36400, "palox": 6}, {"lot": "22", "variete": "MER", "pg": "R110", "qte": 38000, "palox": 8}, {"lot": "23", "variete": "CHA", "pg": "R110", "qte": 22000, "palox": null}, {"lot": "24", "variete": "CAB", "pg": "R110", "qte": 8000, "palox": null}, {"lot": "25", "variete": "CAM", "pg": "R110", "qte": 14400, "palox": null}, {"lot": "26", "variete": "SAU", "pg": "R110", "qte": 21800, "palox": null}, {"lot": "27", "variete": "TIO", "pg": "R110", "qte": 92500, "palox": 17}, {"lot": "28", "variete": "CHA", "pg": "R110", "qte": 12000, "palox": 3}], "creeLe": "2026-10-02T12:00:00.000Z", "creePar": "Raphaël"}, "entrees": [{"id": "seed-rel-1-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "heure": "13:46", "tExt": 15, "tInt": 15.5, "creeLe": "2026-10-06T17:15:28.618Z"}, {"id": "seed-obs-1", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 1, "remarque": "Lancement de la chauffe. Relevé 15 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:28.618Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-2-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "heure": "13:46", "tExt": 18, "tInt": 18, "creeLe": "2026-10-06T17:15:34.506Z"}, {"id": "seed-obs-2", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 2, "remarque": "Relevé 18 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:34.506Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-3-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "heure": "13:47", "tExt": 22, "tInt": 22, "creeLe": "2026-10-06T17:15:40.124Z"}, {"id": "seed-obs-3", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 3, "remarque": "Relevé 23 °C (lieu de mesure à préciser).", "creeLe": "2026-10-06T17:15:40.124Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Aucune", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-4-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "heure": "13:48", "tExt": 26, "tInt": 27, "creeLe": "2026-10-06T17:15:45.624Z"}, {"id": "seed-obs-4", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 4, "remarque": "Relevé 26 °C (lieu de mesure à préciser). Contrôle des plants avec Gérard.", "creeLe": "2026-10-06T17:15:45.624Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}, {"id": "seed-rel-5-0", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "10:00", "tExt": 28, "tInt": 29, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-rel-5-1", "type": "releve", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "heure": "14:11", "tExt": 26.5, "tInt": 27.5, "creeLe": "2026-10-06T17:39:48.450Z"}, {"id": "seed-obs-5", "type": "obs", "chauffeId": "chauffe-1-vivero-richter-2026", "jour": 5, "remarque": "Mise en eau de tous les palox. Environ 29 °C dans les palox. Palox couverts (couverture humide + plastique).\nBaisse de température du a l’eau dans les palox", "creeLe": "2026-10-06T17:39:48.450Z", "gouttes": "Oui", "couverture": "Bien humide", "racines": "Début", "cal": "Pas visible", "bois": "Humide", "odeur": "Normale"}]};
 
 /* ---------- Valeurs des observations ---------- */
@@ -199,6 +205,7 @@ const nowIso = () => new Date().toISOString();
 const num = v => { const t=String(v==null?'':v).trim().replace(',','.').replace(/[^0-9.\-]/g,''); if(t===''||t==='-'||t==='.') return null; const n=Number(t); return Number.isFinite(n)?n:null; };
 const hhmm = () => { const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); };
 const fmtH = h => h ? h.replace(':','h') : '';
+const fmtN = v => v==null||v==='' ? '' : Number(v).toLocaleString('fr-FR',{maximumFractionDigits:2});
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.hidden=true; },2600); }
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const JOURS=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
@@ -381,9 +388,9 @@ function renderChauffeForm(){
         </div>
         <div class="two">
           <div class="field"><label for="l-q">Plants <span class="hint">(facult.)</span></label><input id="l-q" class="num" type="text" inputmode="numeric"></div>
-          <div class="field"><label for="l-x">Palox <span class="hint">(facult.)</span></label><input id="l-x" class="num" type="text" inputmode="numeric"></div>
+          <div class="field"><label for="l-x">Palox <span class="hint">(facult., ex. 2,5)</span></label><input id="l-x" class="num" type="text" inputmode="decimal" placeholder="2,5"></div>
         </div>
-        <button class="ghost" id="l-add" type="button">+ Ajouter ce lot</button>
+        <div class="row"><button class="ghost" id="l-add" type="button">+ Ajouter ce lot</button><button class="ghost" id="l-cancel" type="button" hidden>Annuler</button></div>
       </div>
       <button class="primary" type="submit">${editing?'Enregistrer':'Créer la chauffe'}</button>
       <div class="status" id="f-st"></div>
@@ -391,14 +398,32 @@ function renderChauffeForm(){
     ${editing?`<div class="card"><h3>Archiver ou supprimer</h3><p class="note">Une chauffe archivée reste consultable, en bas de la liste. La suppression retire la chauffe et toutes ses notes de cet appareil.</p>
       <div class="row"><button class="ghost" id="f-arch" type="button">${editing.archive?'Désarchiver':'Archiver'}</button><button class="ghost danger" id="f-del" type="button">Supprimer la chauffe</button></div><div class="status" id="f-st2"></div></div>`:''}
   </section>`;
+  let editLot=null;
+  const lotText=l=>'Lot '+l.lot+(l.variete||l.pg?' · '+[l.variete,l.pg].filter(Boolean).join(' / '):'')+(l.qte!=null?' · '+fmtN(l.qte)+' pl.':'')+(l.palox!=null?' · '+fmtN(l.palox)+' palox':'');
+  const mkBtn=(txt,label,fn,dis)=>{ const b=document.createElement('button'); b.type='button'; b.className='ghost'; b.textContent=txt; b.setAttribute('aria-label',label); b.disabled=!!dis; b.onclick=fn; return b; };
+  const resetLotInputs=()=>{ editLot=null; ['l-n','l-v','l-p','l-q','l-x'].forEach(id=>$(id).value=''); $('l-add').textContent='+ Ajouter ce lot'; $('l-cancel').hidden=true; };
   const drawLots=()=>{ const el=$('f-lots'); el.innerHTML=''; if(!formLots.length){ el.innerHTML='<div class="item empty">Aucun lot pour l\'instant.</div>'; return; }
-    formLots.forEach((l,i)=>{ const d=document.createElement('div'); d.className='rel'; const s=document.createElement('span');
-      s.textContent='Lot '+l.lot+(l.variete||l.pg?' · '+[l.variete,l.pg].filter(Boolean).join(' / '):'')+(l.qte?' · '+l.qte.toLocaleString('fr-FR')+' pl.':'')+(l.palox?' · '+l.palox+' palox':'');
-      const b=document.createElement('button'); b.type='button'; b.textContent='Retirer'; b.onclick=()=>{ formLots.splice(i,1); drawLots(); }; d.append(s,b); el.appendChild(d); }); };
+    formLots.forEach((l,i)=>{ const d=document.createElement('div'); d.className='lotrow'+(l===editLot?' editing':'');
+      const s=document.createElement('span'); s.className='lt'; s.textContent=lotText(l);
+      const act=document.createElement('div'); act.className='lotact';
+      act.append(
+        mkBtn('↑','Monter le lot '+l.lot,()=>{ formLots.splice(i-1,0,formLots.splice(i,1)[0]); drawLots(); },i===0),
+        mkBtn('↓','Descendre le lot '+l.lot,()=>{ formLots.splice(i+1,0,formLots.splice(i,1)[0]); drawLots(); },i===formLots.length-1),
+        mkBtn('Modifier','Modifier le lot '+l.lot,()=>{ editLot=l; $('l-n').value=l.lot; $('l-v').value=l.variete||''; $('l-p').value=l.pg||''; $('l-q').value=l.qte!=null?fmtN(l.qte).replace(/\s/g,''):''; $('l-x').value=l.palox!=null?fmtN(l.palox):''; $('l-add').textContent='Enregistrer ce lot'; $('l-cancel').hidden=false; drawLots(); $('l-n').scrollIntoView({block:'center'}); }),
+        mkBtn('Retirer','Retirer le lot '+l.lot,()=>{ if(l===editLot) resetLotInputs(); formLots.splice(i,1); drawLots(); })
+      );
+      act.lastChild.classList.add('danger');
+      d.append(s,act); el.appendChild(d); }); };
   drawLots();
+  $('l-cancel').onclick=()=>{ resetLotInputs(); drawLots(); };
   $('l-add').onclick=()=>{ const lot=$('l-n').value.trim(); if(!lot){ $('f-st').textContent='Indique au moins le numéro du lot.'; $('f-st').className='status err'; return; }
-    formLots.push({lot, variete:$('l-v').value.trim(), pg:$('l-p').value.trim(), qte:num($('l-q').value), palox:num($('l-x').value)});
-    ['l-n','l-v','l-p','l-q','l-x'].forEach(id=>$(id).value=''); $('f-st').textContent=''; drawLots(); $('l-n').focus(); };
+    const xs=$('l-x').value.trim(), qs=$('l-q').value.trim(); const palox=num(xs), qte=num(qs);
+    if(xs && palox==null){ $('f-st').textContent='Nombre de palox illisible : tape par exemple 3 ou 2,5.'; $('f-st').className='status err'; return; }
+    if(qs && qte==null){ $('f-st').textContent='Nombre de plants illisible.'; $('f-st').className='status err'; return; }
+    const obj={lot, variete:$('l-v').value.trim(), pg:$('l-p').value.trim(), qte, palox};
+    const idx=editLot?formLots.indexOf(editLot):-1;
+    if(idx>=0) formLots[idx]=obj; else formLots.push(obj);
+    const wasEdit=idx>=0; resetLotInputs(); $('f-st').textContent=wasEdit?'Lot modifié. Touche « Enregistrer » en bas pour garder les changements.':''; $('f-st').className='status'; drawLots(); if(!wasEdit) $('l-n').focus(); };
   $('f-back').onclick=()=>{ renderChauffeForm._init=false; editing?go('chauffe',{tab:'infos'}):go('home'); };
   $('f-form').onsubmit=async e=>{ e.preventDefault(); const st=$('f-st');
     const nom=$('f-nom').value.trim(); const duree=Math.round(num($('f-duree').value)||0), de=Math.round(num($('f-de').value)||0), a=Math.round(num($('f-a').value)||0);
@@ -665,14 +690,14 @@ function tabLots(ch, body){
 
 /* ----- Onglet Infos (chauffe, lots, protocole, soudure) ----- */
 function tabInfos(ch, body){
-  const lots=ch.lots||[]; const tq=lots.reduce((s,l)=>s+(l.qte||0),0), tp=lots.reduce((s,l)=>s+(l.palox||0),0);
+  const lots=ch.lots||[]; const tq=lots.reduce((s,l)=>s+(l.qte||0),0), tp=Math.round(lots.reduce((s,l)=>s+(Number(l.palox)||0),0)*100)/100;
   const byPg={}; lots.forEach(l=>{ const k=l.pg||'?'; byPg[k]=(byPg[k]||0)+(l.qte||0); });
   body.innerHTML=`
     <div class="card">
       <div class="hhead"><h3>La chauffe</h3><button class="ghost" id="i-edit" type="button">Modifier</button></div>
-      <dl class="kv"><dt>Durée</dt><dd>${ch.duree} jours · fin prévue J${ch.finDe}–J${ch.finA}</dd>${ch.debut?`<dt>Début</dt><dd>${esc(dayLabel(ch,1))}</dd>`:''}<dt>Lots</dt><dd>${lots.length}${tq?' · '+tq.toLocaleString('fr-FR')+' plants':''}${tp?' · '+tp+' palox':''}</dd>${Object.keys(byPg).length&&tq?`<dt>Porte-greffes</dt><dd>${Object.entries(byPg).map(([k,v])=>esc(k)+' '+(v?(Math.round(v/tq*1000)/10).toLocaleString('fr-FR')+' %':'')).join(' · ')}</dd>`:''}</dl>
+      <dl class="kv"><dt>Durée</dt><dd>${ch.duree} jours · fin prévue J${ch.finDe}–J${ch.finA}</dd>${ch.debut?`<dt>Début</dt><dd>${esc(dayLabel(ch,1))}</dd>`:''}<dt>Lots</dt><dd>${lots.length}${tq?' · '+tq.toLocaleString('fr-FR')+' plants':''}${tp?' · '+fmtN(tp)+' palox':''}</dd>${Object.keys(byPg).length&&tq?`<dt>Porte-greffes</dt><dd>${Object.entries(byPg).map(([k,v])=>esc(k)+' '+(v?(Math.round(v/tq*1000)/10).toLocaleString('fr-FR')+' %':'')).join(' · ')}</dd>`:''}</dl>
       ${ch.notes?`<div class="rem">${esc(ch.notes)}</div>`:''}
-      ${lots.length?`<div class="scrollx"><table class="lotsTable"><thead><tr><th>Lot</th><th>Variété</th><th>Porte-greffe</th><th>Plants</th><th>Palox</th></tr></thead><tbody>${lots.map(l=>`<tr><td>${esc(l.lot)}</td><td>${esc(l.variete||'')}</td><td>${esc(l.pg||'')}</td><td>${l.qte!=null?l.qte.toLocaleString('fr-FR'):''}</td><td>${l.palox!=null?l.palox:'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
+      ${lots.length?`<div class="scrollx"><table class="lotsTable"><thead><tr><th>Lot</th><th>Variété</th><th>Porte-greffe</th><th>Plants</th><th>Palox</th></tr></thead><tbody>${lots.map(l=>`<tr><td>${esc(l.lot)}</td><td>${esc(l.variete||'')}</td><td>${esc(l.pg||'')}</td><td>${l.qte!=null?l.qte.toLocaleString('fr-FR'):''}</td><td>${l.palox!=null?fmtN(l.palox):'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
     </div>
     <div class="hhead"><h2>Protocole de contrôle</h2><button class="ghost" id="i-pedit" type="button">${S.editingProto?'Terminer':'Modifier'}</button></div>
     <p class="note" id="i-pintro">${esc(S.protoIntro)}</p>

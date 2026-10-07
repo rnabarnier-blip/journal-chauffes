@@ -1,7 +1,7 @@
 // Journal de chauffes — service worker : l'app fonctionne hors ligne.
-const VERSION='chauffes-v1.0.0';
+const VERSION='chauffes-v1.1.0';
 const SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-512-maskable.png','./apple-touch-icon.png'];
-self.addEventListener('install',e=>{ e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())); });
+self.addEventListener('install',e=>{ e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='chauffes-fonts').map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener('fetch',e=>{
   const req=e.request; if(req.method!=='GET') return;
@@ -12,7 +12,7 @@ self.addEventListener('fetch',e=>{
   }
   if(url.origin!==location.origin) return;
   if(req.mode==='navigate'){
-    e.respondWith(fetch(req).then(r=>{ const cp=r.clone(); caches.open(VERSION).then(c=>c.put('./index.html',cp)); return r; }).catch(()=>caches.match('./index.html',{ignoreSearch:true})));
+    e.respondWith(fetch(req.url,{cache:'no-cache',credentials:'same-origin'}).then(r=>{ if(r.ok){ const cp=r.clone(); caches.open(VERSION).then(c=>c.put('./index.html',cp)); } return r; }).catch(()=>caches.match('./index.html',{ignoreSearch:true})));
     return;
   }
   e.respondWith(caches.match(req,{ignoreSearch:true}).then(hit=>hit||fetch(req)));
