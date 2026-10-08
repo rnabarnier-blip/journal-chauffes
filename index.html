@@ -176,6 +176,7 @@ input[type=time]{min-width:0;max-width:100%;display:block}
 .syncbar.wait i{background:var(--warn)} .syncbar.bad{color:var(--bad);border-color:var(--bad)} .syncbar.bad i{background:var(--bad)}
 @keyframes pulse{from{opacity:1}to{opacity:.3}}
 .photos button.nophoto{display:none}
+.etabbox{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:10px}
 .ex{font-size:13px;color:var(--muted);font-style:italic}
 .confirm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
 /* ---- Version 2 ---- */
@@ -270,7 +271,7 @@ section.panel>*{min-width:0}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -886,7 +887,7 @@ function renderHome(){
     const b=document.createElement('button'); b.type='button'; b.className='item chauffecard';
     b.innerHTML=`<div class="hhead"><span class="d" style="font-size:18px">${esc(ch.nom)}</span><span class="mono">J${n||'–'} / ${ch.duree}</span></div>
       <div class="progress"><span style="width:${Math.min(100,n/ch.duree*100)}%"></span></div>
-      <div class="meta">${ch.debut?'<span>Début '+esc(dayShort(ch,1))+'</span>':''}<span>${(ch.lots||[]).length} lots</span><span>${nb} note${nb>1?'s':''}</span>${al?'<span class="al">'+al+' alerte'+(al>1?'s':'')+'</span>':''}${chauffeRate(ch).rate!=null?'<span>'+esc(L('réussite ','éxito ')+pct(chauffeRate(ch).rate))+'</span>':''}${ch.archive?'<span>Archivée</span>':''}</div>${rappelDue(ch)!=null?`<div class="rappel">⏱ ${esc(L('Pas de relevé depuis ','Sin lectura desde hace ')+fmtAge(rappelDue(ch)))}</div>`:''}`;
+      <div class="meta">${ch.etab&&ch.etab.nom?'<span><b>'+esc(ch.etab.nom)+'</b></span>':''}${ch.debut?'<span>Début '+esc(dayShort(ch,1))+'</span>':''}<span>${(ch.lots||[]).length} lots</span><span>${nb} note${nb>1?'s':''}</span>${al?'<span class="al">'+al+' alerte'+(al>1?'s':'')+'</span>':''}${chauffeRate(ch).rate!=null?'<span>'+esc(L('réussite ','éxito ')+pct(chauffeRate(ch).rate))+'</span>':''}${ch.archive?'<span>Archivée</span>':''}</div>${rappelDue(ch)!=null?`<div class="rappel">⏱ ${esc(L('Pas de relevé depuis ','Sin lectura desde hace ')+fmtAge(rappelDue(ch)))}</div>`:''}`;
     b.onclick=()=>{ const ln=lastDay(ch); go('chauffe',{chauffeId:ch.id, tab:'jour', jour:Math.max(1,ln||1)}); };
     el.appendChild(b);
   });
@@ -932,6 +933,14 @@ function renderChauffeForm(){
       </div>
       <span class="ex">Ex. : une chauffe de 19 jours qui se termine entre J17 et J19.</span>
       <div class="field"><label for="f-notes">Infos sur la chauffe <span class="hint">(facultatif)</span></label><textarea id="f-notes" placeholder="Informations utiles sur cette chauffe">${esc(c.notes||'')}</textarea><span class="ex">Ex. : salle 2, 40 palox, couverture humide + plastique.</span></div>
+      <div class="field etabbox">
+        <span class="lab">${esc(L('Entreprise de cette chauffe','Empresa de esta calefacción'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></span>
+        <span class="hint">${esc(L("Apparaît en haut du registre de cette chauffe. Laisse vide pour utiliser l'établissement des Réglages","Aparece arriba del registro de esta calefacción. Déjalo vacío para usar el establecimiento de Ajustes"))}${S.etab.nom?' ('+esc(S.etab.nom)+')':''}.</span>
+        ${(()=>{ const k=knownEtabs(editing&&editing.id); return k.length?`<div class="field"><label for="f-epick">${esc(L('Reprendre une entreprise déjà utilisée','Usar una empresa ya registrada'))}</label><select id="f-epick"><option value="">${esc(L('Choisir…','Elegir…'))}</option>${k.map((e,i)=>`<option value="${i}">${esc(e.nom+(e.lieu?' · '+e.lieu:''))}</option>`).join('')}</select></div>`:''; })()}
+        <div class="field"><label for="f-enom">${esc(L("Nom de l'entreprise",'Nombre de la empresa'))}</label><input id="f-enom" type="text" value="${esc((c.etab&&c.etab.nom)||'')}" placeholder="${esc(L("Nom de l'entreprise",'Nombre de la empresa'))}"><span class="ex">${esc(L('Ex. : Vivero Richter, ou le client pour qui la chauffe est faite','Ej.: Vivero Richter, o el cliente para quien se hace la calefacción'))}</span></div>
+        <div class="field"><label for="f-elieu">${esc(L('Adresse ou commune','Dirección o comuna'))}</label><input id="f-elieu" type="text" value="${esc((c.etab&&c.etab.lieu)||'')}" placeholder="${esc(L('Adresse','Dirección'))}"><span class="ex">${esc(L('Ex. : Rancagua, Chili','Ej.: Rancagua, Chile'))}</span></div>
+        <div class="field"><label for="f-eagr">${esc(L("N° d'agrément ou d'enregistrement","N° de registro"))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="f-eagr" type="text" value="${esc((c.etab&&c.etab.agrement)||'')}" placeholder="N°"><span class="ex">${esc(L('Ex. : numéro SAG ou FranceAgriMer.','Ej.: número SAG.'))}</span></div>
+      </div>
       <div class="field seuilsbox">
         <span class="lab">Seuils d'alerte <span class="hint">(facultatif)</span></span>
         <span class="hint">L'app signale les relevés hors de ces valeurs. Demande les bonnes valeurs au responsable de la pépinière.</span>
@@ -1066,6 +1075,7 @@ function renderChauffeForm(){
     const idx=editLot?formLots.indexOf(editLot):-1;
     if(idx>=0) formLots[idx]=obj; else formLots.push(obj);
     const wasEdit=idx>=0; resetLotInputs(); $('f-st').textContent=wasEdit?'Lot modifié. Touche « Enregistrer » en bas pour garder les changements.':''; $('f-st').className='status'; drawLots(); if(!wasEdit) $('l-n').focus(); };
+  if($('f-epick')) $('f-epick').onchange=()=>{ const k=knownEtabs(editing&&editing.id); const e=k[Number($('f-epick').value)]; if(!e) return; $('f-enom').value=e.nom; $('f-elieu').value=e.lieu; $('f-eagr').value=e.agrement; };
   $('f-back').onclick=()=>{ renderChauffeForm._init=false; editing?go('chauffe',{tab:'infos'}):go('home'); };
   $('f-form').onsubmit=async e=>{ e.preventDefault(); const st=$('f-st');
     const nom=$('f-nom').value.trim(); const duree=Math.round(num($('f-duree').value)||0), de=Math.round(num($('f-de').value)||0), a=Math.round(num($('f-a').value)||0);
@@ -1080,7 +1090,7 @@ function renderChauffeForm(){
     if(sv.saut!=null && sv.saut<=0 || sv.rappel!=null && sv.rappel<=0){ st.textContent='La variation et le rappel doivent être plus grands que 0.'; st.className='status err'; return; }
     if($('l-n').value.trim()){ $('l-add').click(); }
     const ch = editing ? Object.assign({},editing) : {id:'ch-'+uid(), creeLe:nowIso(), creePar:S.me.nom};
-    Object.assign(ch,{nom, duree, finDe:de, finA:a, debut:$('f-debut').value||'', notes:$('f-notes').value.trim(), lots:formLots, seuils:sv});
+    Object.assign(ch,{nom, duree, finDe:de, finA:a, debut:$('f-debut').value||'', notes:$('f-notes').value.trim(), lots:formLots, seuils:sv, etab:{nom:$('f-enom').value.trim(), lieu:$('f-elieu').value.trim(), agrement:$('f-eagr').value.trim()}});
     await saveChauffe(ch); renderChauffeForm._init=false; toast(editing?'Chauffe enregistrée.':'Chauffe créée.');
     go('chauffe',{chauffeId:ch.id, tab:editing?'infos':'jour', jour:1}); };
   if(editing){
@@ -1091,6 +1101,13 @@ function renderChauffeForm(){
       renderChauffeForm._init=false; toast('Chauffe supprimée.'); go('home'); };
   }
 }
+
+
+/* ---------- Entreprise / établissement : propre à chaque chauffe, sinon celui des Réglages ---------- */
+function etabOf(ch){ const e=ch&&ch.etab; return (e && (e.nom||e.lieu||e.agrement)) ? {nom:e.nom||'', lieu:e.lieu||'', agrement:e.agrement||'', propre:true} : Object.assign({propre:false}, S.etab); }
+function etabHeadHTML(E){ return `<b>${esc(E.nom||L('Établissement non renseigné','Establecimiento sin indicar'))}</b>${E.lieu?'<br>'+esc(E.lieu):''}${E.agrement?'<br><span class="small">'+esc(L('N° d\'agrément / enregistrement : ','N° de registro: ')+E.agrement)+'</span>':''}`; }
+function knownEtabs(exceptId){ const m=new Map(); const add=e=>{ if(e&&e.nom){ const k=e.nom.trim().toLowerCase(); if(!m.has(k)) m.set(k,{nom:e.nom,lieu:e.lieu||'',agrement:e.agrement||''}); } };
+  add(S.etab); S.chauffes.filter(c=>!c.supprime&&c.id!==exceptId).forEach(c=>add(c.etab)); return Array.from(m.values()); }
 
 /* ---------- Réglages ---------- */
 function renderSettings(){
@@ -1108,8 +1125,8 @@ function renderSettings(){
       <p class="note">${esc(L("Change la langue de l'app sur ce téléphone. Les notes déjà écrites ne sont pas traduites.","Cambia el idioma de la app en este teléfono. Las notas ya escritas no se traducen."))}</p>
     </div>
     <div class="card">
-      <h3>${esc(L('Établissement','Establecimiento'))}</h3>
-      <p class="note">${esc(L('Affiché en haut du registre de traçabilité.','Aparece arriba del registro de trazabilidad.'))}</p>
+      <h3>${esc(L('Établissement par défaut','Establecimiento por defecto'))}</h3>
+      <p class="note">${esc(L("Utilisé pour les chauffes qui n'ont pas leur propre entreprise. Pour une chauffe faite pour une autre entreprise, renseigne-la dans « Modifier la chauffe ».",'Se usa para las calefacciones sin empresa propia. Para una calefacción hecha para otra empresa, indícala en « Modificar la calefacción ».'))}</p>
       <div class="field"><label for="s-enom">${esc(L('Nom de la pépinière','Nombre del vivero'))}</label><input id="s-enom" type="text" value="${esc(S.etab.nom)}" placeholder="${esc(L('Nom','Nombre'))}"><span class="ex">${esc(L('Ex. : Vivero Richter','Ej.: Vivero Richter'))}</span></div>
       <div class="field"><label for="s-elieu">${esc(L('Adresse ou commune','Dirección o comuna'))}</label><input id="s-elieu" type="text" value="${esc(S.etab.lieu)}" placeholder="${esc(L('Adresse','Dirección'))}"><span class="ex">${esc(L('Ex. : Rancagua, Chili','Ej.: Rancagua, Chile'))}</span></div>
       <div class="field"><label for="s-eagr">${esc(L("N° d'agrément ou d'enregistrement","N° de registro"))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="s-eagr" type="text" value="${esc(S.etab.agrement)}" placeholder="N°"><span class="ex">${esc(L('Ex. : numéro SAG ou FranceAgriMer.','Ej.: número SAG.'))}</span></div>
@@ -1425,7 +1442,7 @@ function tabInfos(ch, body){
   body.innerHTML=`
     <div class="card">
       <div class="hhead"><h3>La chauffe</h3><button class="ghost" id="i-edit" type="button">Modifier</button></div>
-      <dl class="kv"><dt>Durée</dt><dd>${ch.duree} jours · fin prévue J${ch.finDe}–J${ch.finA}</dd>${ch.debut?`<dt>Début</dt><dd>${esc(dayLabel(ch,1))}</dd>`:''}<dt>${esc(L('Seuils','Umbrales'))}</dt><dd>${hasSeuils(ch)||seuilsOf(ch).rappel!=null?esc(seuilsText(ch).replace(/^[^:]+:\s*/,'')):esc(L('aucun (Modifier pour en ajouter)','ninguno (Modificar para agregar)'))}</dd>${ch.sortie?`<dt>${esc(L('Sortie','Salida'))}</dt><dd>${esc(ch.sortie.split('-').reverse().join('/'))}</dd>`:''}<dt>Lots</dt><dd>${lots.length}${tq?' · '+tq.toLocaleString('fr-FR')+' plants':''}${tp?' · '+fmtN(tp)+' palox':''}</dd>${Object.keys(byPg).length&&tq?`<dt>Porte-greffes</dt><dd>${Object.entries(byPg).map(([k,v])=>esc(k)+' '+(v?(Math.round(v/tq*1000)/10).toLocaleString('fr-FR')+' %':'')).join(' · ')}</dd>`:''}</dl>
+      <dl class="kv">${(()=>{ const E=etabOf(ch); return E.nom?`<dt>${esc(L('Entreprise','Empresa'))}</dt><dd>${esc(E.nom)}${E.lieu?' · '+esc(E.lieu):''}${E.propre?'':' <span class="hint">'+esc(L('(Réglages)','(Ajustes)'))+'</span>'}</dd>`:''; })()}<dt>Durée</dt><dd>${ch.duree} jours · fin prévue J${ch.finDe}–J${ch.finA}</dd>${ch.debut?`<dt>Début</dt><dd>${esc(dayLabel(ch,1))}</dd>`:''}<dt>${esc(L('Seuils','Umbrales'))}</dt><dd>${hasSeuils(ch)||seuilsOf(ch).rappel!=null?esc(seuilsText(ch).replace(/^[^:]+:\s*/,'')):esc(L('aucun (Modifier pour en ajouter)','ninguno (Modificar para agregar)'))}</dd>${ch.sortie?`<dt>${esc(L('Sortie','Salida'))}</dt><dd>${esc(ch.sortie.split('-').reverse().join('/'))}</dd>`:''}<dt>Lots</dt><dd>${lots.length}${tq?' · '+tq.toLocaleString('fr-FR')+' plants':''}${tp?' · '+fmtN(tp)+' palox':''}</dd>${Object.keys(byPg).length&&tq?`<dt>Porte-greffes</dt><dd>${Object.entries(byPg).map(([k,v])=>esc(k)+' '+(v?(Math.round(v/tq*1000)/10).toLocaleString('fr-FR')+' %':'')).join(' · ')}</dd>`:''}</dl>
       ${ch.notes?`<div class="rem">${esc(ch.notes)}</div>`:''}
       ${lots.length?`<div class="scrollx"><table class="lotsTable"><thead><tr><th>Lot</th><th>Variété</th><th>Porte-greffe</th><th>Plants</th><th>Palox</th></tr></thead><tbody>${lots.map(l=>`<tr><td>${esc(l.lot)}</td><td>${esc(l.variete||'')}</td><td>${esc(l.pg||'')}</td><td>${l.qte!=null?l.qte.toLocaleString('fr-FR'):''}</td><td>${l.palox!=null?fmtN(l.palox):'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
     </div>
@@ -2053,7 +2070,7 @@ function registreHTML(ch){
   const obsByDay=j=>entriesOf(ch.id).filter(e=>e.jour===j && e.type==='obs');
   const ctrl=entriesOf(ch.id,'lot').sort((a,b)=>a.jour-b.jour);
   const now=new Date();
-  return `<div class="etab"><div><b>${esc(S.etab.nom||L('Établissement non renseigné','Establecimiento sin indicar'))}</b>${S.etab.lieu?'<br>'+esc(S.etab.lieu):''}${S.etab.agrement?'<br><span class="small">'+esc(L('N° d\'agrément / enregistrement : ','N° de registro: ')+S.etab.agrement)+'</span>':''}</div>
+  return `<div class="etab"><div>${etabHeadHTML(etabOf(ch))}</div>
       <div class="small" style="text-align:right">${esc(L('Registre de chauffe / stratification','Registro de calefacción / estratificación'))}<br>${esc(L('Édité le ','Emitido el ')+dfmt(now))}</div></div>
     <h2>${esc(ch.nom)}</h2>
     <section><dl>
@@ -2082,7 +2099,7 @@ function renderRegistre(){
   app.innerHTML=`<header class="top noprint"><div class="title-row"><div class="left"><button class="back" id="r-back" type="button" aria-label="Retour">‹</button><h1>${esc(L('Registre de traçabilité','Registro de trazabilidad'))}</h1></div></div></header>
   <section class="panel">
     <div class="card noprint" style="gap:10px">
-      ${S.etab.nom?'':`<div class="alertbox warnbox"><span>${esc(L("Le nom de l'établissement n'est pas renseigné.","El nombre del establecimiento no está indicado."))}</span><button class="ghost" type="button" id="r-set">${esc(L('Le renseigner dans Réglages','Indicarlo en Ajustes'))}</button></div>`}
+      ${etabOf(ch).nom?'':`<div class="alertbox warnbox"><span>${esc(L("Le nom de l'entreprise n'est pas renseigné pour cette chauffe.","El nombre de la empresa no está indicado para esta calefacción."))}</span><button class="ghost" type="button" id="r-set">${esc(L('Le renseigner pour cette chauffe','Indicarlo para esta calefacción'))}</button></div>`}
       <div class="row"><button class="primary" type="button" id="r-print">${esc(L('Imprimer / PDF','Imprimir / PDF'))}</button><button class="ghost" type="button" id="r-file">${esc(L('Envoyer le fichier','Enviar el archivo'))}</button></div>
       <p class="note">${esc(L("Sur iPhone et iPad : « Imprimer / PDF », puis touche Partager (⬆︎) dans l'aperçu pour enregistrer le PDF dans Fichiers. Si l'impression ne s'ouvre pas, utilise « Envoyer le fichier » puis ouvre-le et imprime-le.","En iPhone y iPad: « Imprimir / PDF », luego toca Compartir (⬆︎) en la vista previa para guardar el PDF en Archivos. Si la impresión no se abre, usa « Enviar el archivo », ábrelo e imprímelo."))}</p>
       <div class="status" id="r-st"></div>
@@ -2090,7 +2107,7 @@ function renderRegistre(){
     <article class="paper" id="reg">${registreHTML(ch)}</article>
   </section>`;
   $('r-back').onclick=()=>go('chauffe',{tab:'hist'});
-  if($('r-set')) $('r-set').onclick=()=>go('settings');
+  if($('r-set')) $('r-set').onclick=()=>{ renderChauffeForm._init=false; go('edit'); };
   $('r-print').onclick=()=>{ try{ window.print(); }catch(e){ $('r-st').textContent=L("L'impression n'est pas disponible ici : utilise « Envoyer le fichier ».","La impresión no está disponible aquí: usa « Enviar el archivo »."); $('r-st').className='status err'; } };
   $('r-file').onclick=()=>{ const doc=`<!doctype html><html lang="${S.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(L('Registre','Registro')+' — '+ch.nom)}</title><style>body{margin:0;padding:16px;background:#fff}${REG_CSS}.paper{border:0;padding:0;max-width:900px;margin:0 auto}@media print{body{padding:0}}</style></head><body><article class="paper">${$('reg').innerHTML}</article></body></html>`;
     shareFile(new File([doc], slug(L('registre-','registro-')+ch.nom)+'.html', {type:'text/html'}), $('r-st'), L('Fichier prêt : ouvre-le puis imprime-le en PDF.','Archivo listo: ábrelo e imprímelo en PDF.')); };
