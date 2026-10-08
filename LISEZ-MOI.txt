@@ -1,33 +1,44 @@
-JOURNAL DE CHAUFFES — application hors ligne
-=============================================
+JOURNAL DE CHAUFFES — version 2.0.0
+===================================
 
-Contenu du dossier (tout doit être mis en ligne ensemble) :
-  index.html             l'application
-  sw.js                  permet le fonctionnement sans internet
-  manifest.webmanifest   permet l'installation sur l'écran d'accueil
-  icon-*.png, apple-touch-icon.png   icônes
+C'est la mise à jour de ton app NORMALE (dépôt journal-chauffes), avec toutes les nouveautés
+testées dans Chauffes Pro. Les notes déjà sur les téléphones sont gardées, et le partage
+automatique avec l'équipe (code d'équipe) continue de marcher.
 
-MISE EN LIGNE (une seule fois, depuis l'iPad, avec GitHub Pages — gratuit)
-1. Dans l'app Fichiers, touche le .zip pour le décompresser : un dossier « journal-chauffes » apparaît.
-2. Dans Safari, va sur github.com, crée un compte (Sign up).
-3. Touche « + » puis « New repository ». Nom : journal-chauffes. Coche « Public ». Touche « Create repository ».
-4. Touche « uploading an existing file ». Choisis TOUS les fichiers du dossier (pas le dossier lui-même), puis « Commit changes ».
-5. Va dans « Settings » → « Pages ». Dans « Branch », choisis « main » puis « Save ».
-6. Après 1 à 2 minutes, l'adresse s'affiche : https://TON-NOM.github.io/journal-chauffes/
+NOUVEAUTÉS
+1. Relevés : température, humidité (%) et oxygène O₂ (%), dans la pièce ET dans le palox.
+2. Seuils d'alerte (Infos → Modifier) : min / max de température dans les palox, variation max.
+   d'un jour à l'autre, montée en température (pas d'alerte de température pendant la montée),
+   humidité palox min / max, humidité pièce min, oxygène min, rappel si pas de relevé depuis X heures.
+   Les alertes apparaissent à la saisie, sur les courbes, dans le Suivi et dans le PDF.
+3. Points de vigilance : humidité trop basse / trop haute et oxygène qui baisse ajoutés.
+4. Traitements phytosanitaires (Saisie) : produit, matière active, dose + unité, méthode, cible,
+   volume de bouillie, heure. Repris dans le Suivi, Infos, le PDF et l'export Excel.
+5. Import d'un enregistreur (capteur) en .csv ou .xlsx (Saisie → en bas).
+6. Suivi (ancien « Historique ») :
+   - vue d'ensemble température + humidité + oxygène (séparés ou superposés, choix des courbes palox / pièce) ;
+   - courbe de température (seuils, montée), courbe d'humidité, courbe d'oxygène.
+7. Onglet Bilan : réussite par lot en comptant les plants ou en pourcentage direct,
+   réussite par porte-greffe et par variété, histogramme.
+8. Comparer les saisons (Accueil) : chauffes côte à côte, courbes superposées, réussite variété × porte-greffe.
+9. Registre de traçabilité (Suivi → Registre de traçabilité) : PDF avec les graphiques, lots, conditions
+   jour par jour, traitements, observations, intervenants, visa. Nom de la pépinière dans Réglages.
+10. Français / Español (Réglages).
 
-INSTALLATION SUR UN IPHONE / IPAD
-1. Ouvre l'adresse dans Safari (avec internet, la première fois).
-2. Partager → « Sur l'écran d'accueil » → Ajouter.
-3. Ouvre l'app depuis l'icône. Ensuite, elle fonctionne sans internet.
-Important : utilise toujours l'icône de l'écran d'accueil, pas Safari, sinon tu verrais un autre journal vide.
+METTRE À JOUR (depuis l'iPad)
+1. Décompresse le .zip dans Fichiers : un dossier « journal-chauffes » apparaît.
+2. Sur github.com, ouvre le dépôt journal-chauffes (l'app NORMALE, pas Journal-chauffe-pro).
+3. « Add file » → « Upload files » → choisis TOUS les fichiers du dossier → « Commit changes ».
+4. Après 1 à 2 minutes, ouvre l'app avec internet : le bandeau « Recharger » apparaît, touche-le.
+   Chaque collaborateur reçoit la mise à jour de la même façon, en ouvrant l'app avec internet.
 
-PARTAGE AVEC LES COLLABORATEURS
-- Envoie-leur l'adresse : ils installent l'app de la même façon.
-- « Partager mes notes » crée un fichier .json (AirDrop, WhatsApp, mail).
-- « Importer » ajoute les notes reçues sans rien écraser.
+AVANT DE METTRE À JOUR (conseillé)
+Dans l'app, touche « Partager mes notes » et garde le fichier dans iCloud Drive : c'est ta sauvegarde.
 
-SAUVEGARDE
-Les données sont sur l'appareil. Fais régulièrement « Partager mes notes » et garde le fichier dans iCloud Drive.
+BON À SAVOIR
+- Un collaborateur qui n'a pas encore rechargé garde l'ancienne version : ses notes continuent
+  de s'échanger, il verra les nouveautés après « Recharger ».
+- L'app normale accepte aussi les fichiers « Partager mes notes » de Chauffes Pro, si tu veux
+  y ramener des notes prises dans la version d'essai (attention : elles seront partagées avec l'équipe).
 
-MISE À JOUR DE L'APP
-Remplace les fichiers sur GitHub (Add file → Upload files). Au prochain lancement avec internet, l'app propose « Recharger ». Les notes ne sont pas touchées.
+MISE EN LIGNE / INSTALLATION / PARTAGE : inchangés (voir la première version de ce fichier).
