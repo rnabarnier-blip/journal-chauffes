@@ -49,8 +49,10 @@ h1{font-family:var(--f-display);font-weight:700;font-size:28px;letter-spacing:.0
 .progress span{display:block;height:100%;background:var(--accent)}
 .endzone{font-size:13px;color:var(--muted)}
 nav.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;background:var(--sunk);padding:4px;border-radius:10px}
-nav.tabs button{font:600 14px var(--f-body);border:0;background:transparent;color:var(--muted);padding:9px 1px;border-radius:7px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:370px){nav.tabs button{font-size:12.5px}}
+nav.tabs button{font:600 13.5px var(--f-body);border:0;background:transparent;color:var(--muted);padding:9px 1px;border-radius:7px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:370px){nav.tabs button{font-size:11.5px}}
+table.mini{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}table.mini th,table.mini td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}table.mini th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}table.mini .small{color:var(--muted);font-size:12px}
+#c-body .tabpart{display:grid;gap:16px}h3.secttl{margin:18px 2px 0;font-size:18px}
 nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 section.panel{display:grid;gap:16px;padding-top:8px}
 h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:4px 0 0}
@@ -236,6 +238,7 @@ details.sensor:not([open]){gap:0}
 .chip.ph{background:var(--warn-soft);color:var(--fg)}
 #ph-open{justify-self:start}
 .relgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;align-items:end}
+.thbox{display:grid;gap:8px}.thgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:end}.throw{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding-bottom:10px;border-bottom:1px dashed var(--line)}.throw input{min-width:0}.throw .seg{grid-column:1/-1;flex-wrap:nowrap}.throw .seg button{min-height:40px;padding:6px 4px;font-size:13.5px;flex:1 1 0}.thdel{min-height:40px;padding:6px 12px}.rel small.thd{margin-left:0;display:inline-block;margin-top:3px}.rel .thout{color:var(--bad);font-weight:600}
 .relgrid .colh{font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line);padding-bottom:3px}
 section.panel>*{min-width:0}
 #k-body{display:grid;gap:16px;min-width:0}
@@ -271,7 +274,7 @@ section.panel>*{min-width:0}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.8.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -437,11 +440,12 @@ const bilansOf = cid => entriesOf(cid,'bilan');
 const bilanOf = (cid, lot) => bilansOf(cid).find(b=>String(b.lot)===String(lot));
 /* Un bilan se saisit soit en comptant (plants triés / plants bons), soit directement en pourcentage. */
 const isPctBilan = b => !!b && b.pct!=null && !(b.tries>0);
-const bilanRate = b => !b ? null : (b.tries>0 && b.bons!=null ? Math.max(0,Math.min(1,b.bons/b.tries)) : (b.pct!=null ? Math.max(0,Math.min(1,b.pct/100)) : null));
-const bilanDetail = b => isPctBilan(b) ? L('saisi en pourcentage','ingresado en porcentaje') : plural(b.bons,'bon','bons','buena','buenas')+L(' sur ',' de ')+plural(b.tries,'trié','triés','revisada','revisadas');
+const bilanBons = b => (b.bons||0)+(b.c2||0);
+const bilanRate = b => !b ? null : (b.tries>0 && b.bons!=null ? Math.max(0,Math.min(1,bilanBons(b)/b.tries)) : (b.pct!=null ? Math.max(0,Math.min(1,b.pct/100)) : null));
+const bilanDetail = b => isPctBilan(b) ? L('saisi en pourcentage','ingresado en porcentaje') : ((b.c2||b.rech) ? fmtN(b.bons)+L(' 1er choix',' 1ª')+(b.c2?' · '+fmtN(b.c2)+L(' 2e choix',' 2ª'):'')+(b.rech?' · '+fmtN(b.rech)+L(' à remettre en chauffe',' a recalentar'):'')+L(' sur ',' de ')+plural(b.tries,'trié','triés','revisada','revisadas') : plural(b.bons,'bon','bons','buena','buenas')+L(' sur ',' de ')+plural(b.tries,'trié','triés','revisada','revisadas'))+(b.dateTri?' · '+L('trié le ','revisado el ')+b.dateTri.split('-').reverse().join('/'):'');
 /* Réussite moyenne pondérée : par le nombre de plants du lot s'il est connu, sinon par le nombre de plants triés. */
 function aggRate(items){ let w=0, g=0, tries=0, bons=0, plants=0;
-  items.forEach(({b, qte})=>{ const r=bilanRate(b); if(r==null) return; const wt=qte>0?qte:(b.tries>0?b.tries:100); w+=wt; g+=r*wt; if(b.tries>0){ tries+=b.tries; bons+=b.bons||0; } if(qte>0) plants+=qte; });
+  items.forEach(({b, qte})=>{ const r=bilanRate(b); if(r==null) return; const wt=qte>0?qte:(b.tries>0?b.tries:100); w+=wt; g+=r*wt; if(b.tries>0){ tries+=b.tries; bons+=bilanBons(b); } if(qte>0) plants+=qte; });
   return {rate:w?g/w:null, tries, bons, plants}; }
 function lotsWithBilan(ch){
   const lots=(ch.lots||[]).map(l=>({lot:String(l.lot), variete:l.variete||'', pg:l.pg||'', qte:l.qte||null}));
@@ -751,10 +755,10 @@ const ES = {
   'Ajout de la photo…':'Agregando la foto…','Photo ajoutée.':'Foto agregada.','Photo supprimée.':'Foto eliminada.',"Plus de place sur l'appareil pour cette photo.":'No queda espacio en el dispositivo para esta foto.',"Plus de place sur l'appareil.":'No queda espacio en el dispositivo.','Observations des collaborateurs':'Observaciones de los compañeros','fin de chauffe possible':'fin de calefacción posible','heure ?':'hora ?',
   // Suivi
   'Températures':'Temperaturas','Chaque point est un relevé. Touche un point pour voir sa valeur.':'Cada punto es una lectura. Toca un punto para ver su valor.','Dans les palox':'En los palox','Extérieur':'Exterior','Superposer':'Superponer','Extérieur des palox':'Exterior de los palox','fin prévue':'fin prevista','Touche un point de la courbe.':'Toca un punto de la curva.','Courbe affichée':'Curva mostrada','Courbe des températures':'Curva de temperaturas',
-  "Aucun relevé pour l'instant : ajoute-en un dans l'onglet Saisie.":'Ninguna lectura por ahora: agrega una en la pestaña Ingreso.',"Aucun relevé pour cette courbe pour l'instant.":'Ninguna lectura para esta curva por ahora.',
+  "Aucun relevé pour l'instant : ajoute-en un dans l'onglet Chauffe.":'Ninguna lectura por ahora: agrega una en la pestaña Calefacción.',"Aucun relevé pour cette courbe pour l'instant.":'Ninguna lectura para esta curva por ahora.',
   'Partager cette chauffe':'Compartir esta calefacción',"Pour l'envoyer à quelqu'un qui n'a pas l'app (WhatsApp, mail…).":'Para enviarla a alguien que no tiene la app (WhatsApp, correo…).','Copier le résumé':'Copiar el resumen','Fichier pour Excel':'Archivo para Excel','Résumé copié.':'Resumen copiado.','Le texte est sélectionné : fais « Copier » puis colle-le dans ton message.':'El texto está seleccionado: toca « Copiar » y pégalo en tu mensaje.','Touche un jour pour le compléter ou le corriger.':'Toca un día para completarlo o corregirlo.','à remplir':'por completar',
   // Par lot
-  "Quand tu sors des plants d'un palox, note ici le lot vérifié : si un lot ou un porte-greffe évolue moins bien, tu sauras lequel.":'Cuando saques plantas de un palox, anota aquí el lote revisado: si un lote o un portainjerto evoluciona peor, sabrás cuál.','N° de lot':'N° de lote','Variété':'Variedad','Porte-greffe':'Portainjerto','Ex. : lot 12 · SYR · SO4. Si le lot est dans la liste de la chauffe, variété et porte-greffe se remplissent seuls.':'Ej.: lote 12 · SYR · SO4. Si el lote está en la lista de la calefacción, variedad y portainjerto se completan solos.','Nombre de plants regardés':'Número de plantas revisadas','Ex. : 5':'Ej.: 5','Remarques':'Observaciones','Raison du problème':'Causa del problema','Ce que tu as remarqué sur ce lot':'Lo que notaste en este lote','Ex. : palox du fond, cal visible sur la moitié des plants.':'Ej.: palox del fondo, callo visible en la mitad de las plantas.','Ajouter ce contrôle':'Agregar este control',"Aucun contrôle par lot pour l'instant.":'Ningún control por lote por ahora.','Indique le numéro du lot.':'Indica el número del lote.','Contrôle supprimé.':'Control eliminado.',"Photo prête : touche « Ajouter ce contrôle » pour l'enregistrer.":'Foto lista: toca « Agregar este control » para guardarla.',
+  "Quand tu sors des plants d'un palox, note ici le lot vérifié : si un lot ou un porte-greffe évolue moins bien, tu sauras lequel.":'Cuando saques plantas de un palox, anota aquí el lote revisado: si un lote o un portainjerto evoluciona peor, sabrás cuál.','N° de lot':'N° de lote','Variété':'Variedad','Porte-greffe':'Portainjerto','Ex. : lot 12 · SYR · SO4. Si le lot est dans la liste de la chauffe, variété et porte-greffe se remplissent seuls.':'Ej.: lote 12 · SYR · SO4. Si el lote está en la lista de la calefacción, variedad y portainjerto se completan solos.','Nombre de plants regardés':'Número de plantas revisadas','Ex. : 5':'Ej.: 5','Remarques':'Observaciones','Raison du problème':'Causa del problema','Thermomètres':'Termómetros','Triage':'Selección','Plants morts':'Plantas muertas','Plants regardés':'Plantas revisadas','Feuilles':'Hojas','Pousses':'Brotes','Actions':'Acciones','HR acclim. (%)':'HR aclim. (%)','T° acclim. air (°C)':'T° aclim. aire (°C)','T° acclim. palox (°C)':'T° aclim. palox (°C)','Date du tri':'Fecha de la selección','À remettre en chauffe':'A recalentar','2e choix':'2ª selección','Ce que tu as remarqué sur ce lot':'Lo que notaste en este lote','Ex. : palox du fond, cal visible sur la moitié des plants.':'Ej.: palox del fondo, callo visible en la mitad de las plantas.','Ajouter ce contrôle':'Agregar este control',"Aucun contrôle par lot pour l'instant.":'Ningún control por lote por ahora.','Indique le numéro du lot.':'Indica el número del lote.','Contrôle supprimé.':'Control eliminado.',"Photo prête : touche « Ajouter ce contrôle » pour l'enregistrer.":'Foto lista: toca « Agregar este control » para guardarla.',
   // Infos
   'La chauffe':'La calefacción','Durée':'Duración','Lots':'Lotes','Lot':'Lote','Porte-greffes':'Portainjertos','Plants':'Plantas','Palox':'Palox','Protocole de contrôle':'Protocolo de control','Comment':'Cómo','Normal':'Normal','Alerte':'Alerta','Contrôle':'Control','Introduction':'Introducción','Retirer ce contrôle':'Quitar este control','+ Ajouter un contrôle':'+ Agregar un control',"Revenir au protocole d'origine":'Volver al protocolo original','Enregistrer le protocole':'Guardar el protocolo','Protocole enregistré.':'Protocolo guardado.','Nouveau contrôle':'Nuevo control',
   "Protocole appris avec Gérard. Les palox sont couverts d'une couverture humide et d'un plastique pour garder un maximum d'humidité.":'Protocolo aprendido con Gérard. Los palox se cubren con una manta húmeda y un plástico para mantener la máxima humedad.',
@@ -1171,17 +1175,64 @@ function renderChauffe(){
     <div class="endzone">${ch.debut?'Début le '+esc(dayLabel(ch,1))+' · ':''}fin de chauffe prévue entre J${ch.finDe} et J${ch.finA}</div>
     ${syncbarHTML()}
     <nav class="tabs" role="tablist">
-      ${[['jour','Saisie'],['hist','Suivi'],['lots','Par lot'],['bilan','Bilan'],['infos','Infos']].map(([k,l])=>`<button role="tab" type="button" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join('')}
+      ${[['jour',L('Chauffe','Calefacción')],['bilan',L('Triage','Selección')],['acc',L('Acclim.','Aclim.')],['hist','Suivi'],['infos','Infos']].map(([k,l])=>`<button role="tab" type="button" data-tab="${k}" aria-selected="${S.tab===k||(k==='jour'&&S.tab==='lots')}">${l}</button>`).join('')}
     </nav></header>
   <section class="panel" id="c-body"></section>`;
   $('c-back').onclick=()=>go('home'); bindSyncbar();
   app.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; renderChauffe(); window.scrollTo({top:0}); });
-  ({jour:tabJour, hist:tabHist, lots:tabLots, bilan:tabBilan, infos:tabInfos}[S.tab]||tabJour)(ch, $('c-body'));
+  ({jour:tabChauffe, hist:tabHist, lots:tabChauffe, bilan:tabBilan, acc:tabAcclim, infos:tabInfos}[S.tab]||tabChauffe)(ch, $('c-body'));
 }
 
 function segHTML(id,key,val){ return `<div class="seg" id="${id}">`+OPTS[key].opts.map(o=>`<button type="button" data-v="${esc(o)}" class="${OPTS[key].alert.includes(o)?'alert':''}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')+'</div>'; }
 function bindSeg(id,key,state,onChange){ const el=$(id); el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; state[key]=state[key]===v?'':v; el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===state[key])); onChange&&onChange(); }); }
 
+/* ----- Thermomètres nommés (plusieurs par chauffe) ----- */
+/* Les thermomètres sont rangés dans le journal (pas dans une chauffe) : créés une fois, ils servent pour toutes les chauffes. Catégorie : 'in' = chauffe, dans le palox ; 'ext' = chauffe, dans l'air ; 'acc' = acclimatation. */
+const thermosAll=()=>S.entrees.filter(e=>!e.supprime&&e.type==='thermo').sort((a,b)=>(a.creeLe||'').localeCompare(b.creeLe||''));
+/* Chaque thermomètre appartient soit à la chauffe, soit à l'acclimatation (phase), et mesure soit dans le palox, soit dans l'air (pos). */
+const thPhase=t=>t.phase||(t.cat==='acc'?'acc':'chauffe');
+const thPos=t=>t.pos||(t.cat==='ext'||t.cat==='acc'?'ext':'in');
+const thermosPhase=ph=>thermosAll().filter(t=>thPhase(t)===ph).map(t=>({id:t.id, nom:t.nom, pos:thPos(t)}));
+const thermosOf=ch=>thermosPhase('chauffe');
+const thermosAcc=()=>thermosPhase('acc');
+const thAvg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;
+const thPosLabel=pos=>pos==='ext'?L('air','aire'):'palox';
+function thermoText(r){ return (r.thermos||[]).filter(t=>t.v!=null).map(t=>t.nom+' '+fmtN(t.v)+' °C').join(' · '); }
+function thermoOut(ch,t){ const s=seuilsOf(ch); if(t.pos!=='in'||t.v==null) return false; return (s.inMin!=null&&t.v<s.inMin)||(s.inMax!=null&&t.v>s.inMax); }
+function thermoManagerHTML(ch){ const TH=S.thDraft||[];
+  return `<div class="card thman" id="th-man" style="gap:10px;background:var(--sunk)">
+    <h3>${esc(S.thEdit==='acc'?L("Thermomètres de l'acclimatation","Termómetros de la aclimatación"):L('Thermomètres de la chauffe','Termómetros de la calefacción'))}</h3>
+    <p class="note">${esc(L("Crée chaque thermomètre une seule fois : il reste dans le journal pour toutes les chauffes, et toute l'équipe le voit. Ceux créés ici servent seulement "+(S.thEdit==='acc'?"à l'acclimatation":"à la chauffe")+". Pour chacun, choisis s'il mesure dans le palox ou dans l'air. L'app fait la moyenne du palox et celle de l'air ; ce sont ces moyennes qui vont dans les tableaux et les courbes. Les relevés déjà enregistrés ne changent pas.","Crea cada termómetro una sola vez: queda en el diario para todas las calefacciones y todo el equipo lo ve. Los creados aquí sirven solo "+(S.thEdit==='acc'?"para la aclimatación":"para la calefacción")+". Para cada uno, elige si mide dentro del palox o en el aire. La app hace el promedio del palox y el del aire; esos promedios van a las tablas y las curvas. Las lecturas ya guardadas no cambian."))}</p>
+    ${TH.map((t,i)=>`<div class="throw"><input type="text" id="th-n-${i}" value="${esc(t.nom)}" placeholder="${esc(L('Nom','Nombre'))}" aria-label="${esc(L('Nom du thermomètre','Nombre del termómetro'))}"><button type="button" class="ghost thdel" data-i="${i}" aria-label="${esc(L('Retirer','Quitar'))}">✕</button><div class="seg" data-i="${i}"><button type="button" data-v="in" aria-pressed="${t.pos!=='ext'}">${esc(L('Dans le palox','Dentro del palox'))}</button><button type="button" data-v="ext" aria-pressed="${t.pos==='ext'}">${esc(L("Dans l'air",'En el aire'))}</button></div></div>`).join('')}
+    <span class="ex">${esc(S.thEdit==='acc'?L('Ex. : « Tunnel palox 5 », « Tunnel air entrée ».','Ej.: « Túnel palox 5 », « Túnel aire entrada ».'):L('Ex. : « Palox 3 haut », « Palox 12 milieu », « Air porte ».','Ej.: « Palox 3 arriba », « Palox 12 centro », « Aire puerta ».'))}</span>
+    <button class="ghost" type="button" id="th-add">${esc(L('+ Ajouter un thermomètre','+ Agregar un termómetro'))}</button>
+    <div class="row"><button class="primary" type="button" id="th-ok">${esc(L('Enregistrer les thermomètres','Guardar los termómetros'))}</button><button class="ghost" type="button" id="th-x">${esc(L('Annuler','Cancelar'))}</button></div>
+    <div class="status" id="th-st"></div></div>`; }
+function bindThermoManager(ch){ if(!$('th-man')) return;
+  const sync=()=>{ (S.thDraft||[]).forEach((t,i)=>{ const el=$('th-n-'+i); if(el) t.nom=el.value; }); };
+  $('th-man').querySelectorAll('.seg[data-i]').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const t=S.thDraft[Number(sg.dataset.i)]; t.pos=b.dataset.v; sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); }));
+  $('th-man').querySelectorAll('.thdel').forEach(b=>b.onclick=()=>{ sync(); S.thDraft.splice(Number(b.dataset.i),1); renderChauffe(); });
+  $('th-add').onclick=()=>{ sync(); S.thDraft.push({id:'thermo:'+uid(), nom:'', pos:'in'}); renderChauffe(); setTimeout(()=>{ const el=$('th-n-'+(S.thDraft.length-1)); if(el){ el.focus(); el.scrollIntoView({block:'center'}); } },30); };
+  $('th-x').onclick=()=>{ S.thEdit=null; S.thDraft=null; renderChauffe(); };
+  $('th-ok').onclick=async()=>{ sync(); const phase=S.thEdit==='acc'?'acc':'chauffe'; const list=S.thDraft.map(t=>({id:t.id, nom:t.nom.trim(), phase, pos:t.pos==='ext'?'ext':'in'}));
+    if(list.some(t=>!t.nom)){ $('th-st').textContent=L('Donne un nom à chaque thermomètre (ou retire-le).','Ponle un nombre a cada termómetro (o quítalo).'); $('th-st').className='status err'; return; }
+    const names=list.map(t=>t.nom.toLowerCase()); if(new Set(names).size!==names.length){ $('th-st').textContent=L('Deux thermomètres ont le même nom.','Dos termómetros tienen el mismo nombre.'); $('th-st').className='status err'; return; }
+    const old=thermosAll().filter(o=>thPhase(o)===phase); const ch2=[];
+    list.forEach(t=>{ const o=old.find(x=>x.id===t.id); if(!o) ch2.push({id:t.id, type:'thermo', chauffeId:'_journal', nom:t.nom, phase, pos:t.pos, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()}); else if(o.nom!==t.nom||thPos(o)!==t.pos||!o.phase) ch2.push(Object.assign({},o,{nom:t.nom, phase, pos:t.pos})); });
+    old.filter(o=>!list.some(t=>t.id===o.id)).forEach(o=>ch2.push(Object.assign({},o,{supprime:true})));
+    await saveEntries(ch2); S.thEdit=null; S.thDraft=null; toast(L('Thermomètres enregistrés.','Termómetros guardados.')); renderChauffe(); }; }
+function thermoInputsHTML(TH, pre, cls, avgId, note){ if(!TH.length) return '';
+  const grp=(pos,title)=>{ const g=TH.filter(t=>t.pos===pos); return g.length?`<span class="lab colh">${esc(title)}</span><div class="thgrid">${g.map(t=>`<div class="field"><label for="${pre}${esc(t.id)}">${esc(t.nom)}</label><input id="${pre}${esc(t.id)}" class="num ${cls}" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>`).join('')}</div>`:''; };
+  return `<div class="thbox">${grp('in',L('Températures dans le palox','Temperaturas dentro del palox'))}${grp('ext',L("Températures dans l'air","Temperaturas en el aire"))}<div class="sumbox" id="${avgId}"></div>${note?'<span class="ex">'+esc(note)+'</span>':''}</div>`; }
+function thermoAvgText(TV){ const a=thAvg(TV.filter(t=>t.pos==='in').map(t=>t.v)), b=thAvg(TV.filter(t=>t.pos==='ext').map(t=>t.v));
+  return (a!=null?esc(L('Moyenne palox : ','Promedio palox: '))+'<b>'+esc(fmtN(a))+' °C</b>':'')+(a!=null&&b!=null?' · ':'')+(b!=null?esc(L('Moyenne air : ','Promedio aire: '))+'<b>'+esc(fmtN(b))+' °C</b>':''); }
+
+/* ----- Onglet Chauffe : saisie du jour + contrôle par lot (comme l'onglet Acclim.) ----- */
+function tabChauffe(ch, body){
+  body.innerHTML=`<div id="c-jour" class="tabpart"></div><h3 class="secttl" id="c-lots-t">${esc(L('Contrôle par lot','Control por lote'))}</h3><div id="c-lots" class="tabpart"></div>`;
+  tabJour(ch, $('c-jour')); tabLots(ch, $('c-lots'));
+  if(S.tab==='lots'){ S.tab='jour'; setTimeout(()=>{ const t=$('c-lots-t'); if(t){ const hd=document.querySelector('header.top'); window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-(hd?hd.offsetHeight:0)-8}); } },30); }
+}
 /* ----- Onglet Saisie ----- */
 function tabJour(ch, body){
   const J=S.jour; const mine=myObs(ch.id,J); const st={}; OBS_KEYS.forEach(k=>st[k]=mine?mine[k]||'':'');
@@ -1199,10 +1250,12 @@ function tabJour(ch, body){
         <span class="hint">Ajoute un relevé chaque fois que tu regardes le thermomètre.</span>
         <div class="list" id="j-rels"></div>
         <div class="field"><label for="j-h">Heure du relevé</label><input id="j-h" type="time" value="${hhmm()}"></div>
+        ${S.thEdit==='chauffe'?thermoManagerHTML(ch):`<button class="linkbtn" type="button" id="j-thm">${esc(thermosOf(ch).length?L('Thermomètres : ','Termómetros: ')+thermosOf(ch).map(t=>t.nom).join(', ')+L(' · Gérer',' · Gestionar'):L('Plusieurs thermomètres ? Donne-leur un nom','¿Varios termómetros? Ponles un nombre'))}</button>`}
+        ${thermoInputsHTML(thermosOf(ch),'j-th-','jth','j-thavg','')}
         <div class="relgrid">
           <span class="lab colh">${esc(L('Pièce (hors palox)','Sala (fuera del palox)'))}</span><span class="lab colh">${esc(L('Dans le palox','Dentro del palox'))}</span>
-          <div class="field"><label for="j-ext">${esc(L('Température (°C)','Temperatura (°C)'))}</label><input id="j-ext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
-          <div class="field"><label for="j-int">${esc(L('Température (°C)','Temperatura (°C)'))}</label><input id="j-int" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
+          ${thermosOf(ch).length?'<input id="j-ext" type="hidden"><input id="j-int" type="hidden">':`<div class="field"><label for="j-ext">${esc(L('Température (°C)','Temperatura (°C)'))}</label><input id="j-ext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
+          <div class="field"><label for="j-int">${esc(L('Température (°C)','Temperatura (°C)'))}</label><input id="j-int" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>`}
           <div class="field"><label for="j-hext">${esc(L('Humidité (%)','Humedad (%)'))}</label><input id="j-hext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
           <div class="field"><label for="j-hint">${esc(L('Humidité (%)','Humedad (%)'))}</label><input id="j-hint" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
           <div class="field"><label for="j-oext">${esc(L('Oxygène O₂ (%)','Oxígeno O₂ (%)'))}</label><input id="j-oext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
@@ -1236,7 +1289,7 @@ function tabJour(ch, body){
   const manual=rels.filter(r=>r.source!=='capteur'), cap=rels.filter(r=>r.source==='capteur');
   if(!rels.length) relEl.innerHTML='<div class="rel none">Aucun relevé pour ce jour.</div>';
   manual.forEach(r=>{ const d=document.createElement('div'); const o=relOut(ch,r)||(humOut(ch,r).length?'hum':''); d.className='rel'+(o?' out':''); const s=document.createElement('span');
-    s.innerHTML=(o?'⚠ ':'')+esc([r.heure?fmtH(r.heure):L('heure ?','hora ?'), r.tExt!=null?L('pièce ','sala ')+fmtN(r.tExt)+' °C':null, r.tInt!=null?L('palox ','palox ')+fmtN(r.tInt)+' °C':null, humText(r)||null].filter(Boolean).join(' · '))+(isMine(r)?'':'<small>'+esc(authorName(r))+'</small>');
+    s.innerHTML=(o?'⚠ ':'')+esc([r.heure?fmtH(r.heure):L('heure ?','hora ?'), r.tExt!=null?L('pièce ','sala ')+fmtN(r.tExt)+' °C':null, r.tInt!=null?L('palox ','palox ')+fmtN(r.tInt)+' °C':null, humText(r)||null].filter(Boolean).join(' · '))+(isMine(r)?'':'<small>'+esc(authorName(r))+'</small>')+(r.thermos&&r.thermos.length?'<br><small class="thd">'+r.thermos.map(t=>'<span'+(thermoOut(ch,t)?' class="thout"':'')+'>'+esc(t.nom+' '+fmtN(t.v)+' °C')+'</span>').join(' · ')+'</small>':'');
     d.appendChild(s);
     if(isMine(r)){ const b=document.createElement('button'); b.type='button'; b.textContent='Retirer'; b.onclick=async()=>{ await removeEntry(r); toast('Relevé retiré.'); renderChauffe(); }; d.appendChild(b); }
     relEl.appendChild(d); });
@@ -1270,17 +1323,21 @@ function tabJour(ch, body){
     OBS_KEYS.forEach(k=>e[k]=st[k]||''); e.remarque=rem; e.raison=raison; e.auteurNom=S.me.nom; delete e.supprime;
     await saveEntry(e); dirty=false; return true;
   }
-  const pending=()=>{ const te=num($('j-ext').value), ti=num($('j-int').value), he=num($('j-hext').value), hi=num($('j-hint').value), oe=num($('j-oext').value), oi=num($('j-oint').value); return (te==null&&ti==null&&he==null&&hi==null&&oe==null&&oi==null)?null:{tExt:te,tInt:ti,humExt:he,humInt:hi,o2Ext:oe,o2Int:oi}; };
+  const thVals=()=>thermosOf(ch).map(t=>({id:t.id, nom:t.nom, pos:t.pos, v:num(($('j-th-'+t.id)||{}).value)})).filter(t=>t.v!=null);
+  const pending=()=>{ const TV=thVals(); let te=num($('j-ext').value), ti=num($('j-int').value); if(thermosOf(ch).length){ te=thAvg(TV.filter(t=>t.pos==='ext').map(t=>t.v)); ti=thAvg(TV.filter(t=>t.pos==='in').map(t=>t.v)); } const he=num($('j-hext').value), hi=num($('j-hint').value), oe=num($('j-oext').value), oi=num($('j-oint').value); return (te==null&&ti==null&&he==null&&hi==null&&oe==null&&oi==null)?null:{tExt:te,tInt:ti,humExt:he,humInt:hi,o2Ext:oe,o2Int:oi,thermos:TV.length?TV:null}; };
   async function addRel(){ const stEl=$('j-st'); const p=pending();
-    if(!p){ stEl.textContent=($('j-ext').value||$('j-int').value||$('j-hext').value||$('j-hint').value||$('j-oext').value||$('j-oint').value)?'Température illisible : tape seulement le nombre, par exemple 28 ou 28,5.':'Indique au moins une température.'; stEl.className='status err'; return; }
+    if(!p){ stEl.textContent=([...document.querySelectorAll('.jth')].some(x=>x.value)||$('j-ext').value||$('j-int').value||$('j-hext').value||$('j-hint').value||$('j-oext').value||$('j-oint').value)?'Température illisible : tape seulement le nombre, par exemple 28 ou 28,5.':'Indique au moins une température.'; stEl.className='status err'; return; }
     if([p.humExt,p.humInt,p.o2Ext,p.o2Int].some(v=>v!=null && (v<0||v>100))){ stEl.textContent=L("L'humidité doit être entre 0 et 100 %.",'La humedad debe estar entre 0 y 100 %.'); stEl.className='status err'; return; }
-    try{ const ent={id:uid(), type:'releve', chauffeId:ch.id, jour:J, heure:$('j-h').value||'', tExt:p.tExt, tInt:p.tInt, humExt:p.humExt, humInt:p.humInt, o2Ext:p.o2Ext, o2Int:p.o2Int, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()};
+    try{ const ent={id:uid(), type:'releve', chauffeId:ch.id, jour:J, heure:$('j-h').value||'', tExt:p.tExt, tInt:p.tInt, humExt:p.humExt, humInt:p.humInt, o2Ext:p.o2Ext, o2Int:p.o2Int, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()}; if(p.thermos) ent.thermos=p.thermos;
       await saveEntry(ent);
       if(dirty) await saveObs(true);
       const o=relOut(ch,ent), ho=humOut(ch,ent); toast(!o&&ho.includes('o2low')?L("⚠ Oxygène trop bas : relevé enregistré.",'⚠ Oxígeno demasiado bajo: lectura guardada.'):!o&&ho.length?L("⚠ Humidité hors seuil : relevé enregistré.",'⚠ Humedad fuera de umbral: lectura guardada.'):o?(o==='cold'?L('⚠ Trop froid dans les palox : relevé enregistré.','⚠ Demasiado frío en los palox: lectura guardada.'):L('⚠ Trop chaud dans les palox : relevé enregistré.','⚠ Demasiado calor en los palox: lectura guardada.')):'Relevé de '+(fmtH($('j-h').value)||'(sans heure)')+' enregistré.'); renderChauffe(); }
     catch(err){ stEl.textContent='Enregistrement impossible : stockage plein ou bloqué.'; stEl.className='status err'; } }
   $('j-addrel').onclick=addRel;
   ['j-ext','j-int','j-hext','j-hint','j-oext','j-oint','j-h'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addRel(); } }));
+  document.querySelectorAll('.jth').forEach(el=>{ el.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addRel(); } }); el.addEventListener('input',()=>{ $('j-thavg').innerHTML=thermoAvgText(thVals()); }); });
+  if($('j-thm')) $('j-thm').onclick=()=>{ S.thEdit='chauffe'; S.thDraft=thermosPhase('chauffe').map(t=>Object.assign({},t)); if(!S.thDraft.length) S.thDraft.push({id:'thermo:'+uid(), nom:'', pos:'in'}); renderChauffe(); setTimeout(()=>{ const m=$('th-man'); if(m) m.scrollIntoView({block:'start'}); },30); };
+  bindThermoManager(ch);
   $('j-form').onsubmit=async e=>{ e.preventDefault(); if(pending()) return addRel();
     try{ await saveObs(); toast('Journée enregistrée.'); renderChauffe(); }catch(err){ $('j-st').textContent='Enregistrement impossible : stockage plein ou bloqué.'; $('j-st').className='status err'; } };
 }
@@ -1300,11 +1357,11 @@ function tabHist(ch, body){
     </div>
     <div class="card" style="gap:10px">
       <h3 class="ctitle">${esc(L('Humidité relative (%)','Humedad relativa (%)'))}</h3>
-      ${humSVG(ch,false)?pairSegHTML('h-view',S.hv||'both')+'<div id="h-wrap"></div>':`<p class="note">${esc(L("Aucune humidité relevée pour l'instant : ajoute-la dans l'onglet Saisie (pièce et palox).","Ninguna humedad registrada por ahora: agrégala en la pestaña Ingreso (sala y palox)."))}</p>`}
+      ${humSVG(ch,false)?pairSegHTML('h-view',S.hv||'both')+'<div id="h-wrap"></div>':`<p class="note">${esc(L("Aucune humidité relevée pour l'instant : ajoute-la dans l'onglet Chauffe (pièce et palox).","Ninguna humedad registrada por ahora: agrégala en la pestaña Calefacción (sala y palox)."))}</p>`}
     </div>
     <div class="card" style="gap:10px">
       <h3 class="ctitle">${esc(L('Oxygène O₂ (%)','Oxígeno O₂ (%)'))}</h3>
-      ${o2SVG(ch,false)?pairSegHTML('o-view',S.ov||'both')+'<div id="o-wrap"></div>':`<p class="note">${esc(L("Aucun taux d'oxygène relevé pour l'instant : ajoute-le dans l'onglet Saisie (pièce et palox).","Ningún nivel de oxígeno registrado por ahora: agrégalo en la pestaña Ingreso (sala y palox)."))}</p>`}
+      ${o2SVG(ch,false)?pairSegHTML('o-view',S.ov||'both')+'<div id="o-wrap"></div>':`<p class="note">${esc(L("Aucun taux d'oxygène relevé pour l'instant : ajoute-le dans l'onglet Chauffe (pièce et palox).","Ningún nivel de oxígeno registrado por ahora: agrégalo en la pestaña Calefacción (sala y palox)."))}</p>`}
     </div>
     <div class="card" style="gap:10px">
       <h3>Partager cette chauffe</h3>
@@ -1387,7 +1444,7 @@ function drawChart(ch){
   $('g-leg').innerHTML=shown.filter(s=>P[s.k].length).map(s=>`<span><svg width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="${s.color}" stroke-width="2"></line><circle cx="11" cy="5" r="3.5" fill="${s.fill?s.color:'var(--surface)'}" stroke="${s.color}" stroke-width="1.5"></circle></svg>${esc(s.name)}</span>`).join('');
   const hk=S.courbe==='ext'?'ext':'in', li=P[hk][P[hk].length-1];
   $('g-title').textContent=li?(hk==='in'?'Dans les palox : ':'Extérieur des palox : ')+fmtN(li.v)+' °C au dernier relevé (J'+li.r.jour+')':'Températures';
-  if(!all.length) $('g-tip').textContent=S.courbe==='both'?'Aucun relevé pour l\'instant : ajoute-en un dans l\'onglet Saisie.':'Aucun relevé pour cette courbe pour l\'instant.';
+  if(!all.length) $('g-tip').textContent=S.courbe==='both'?'Aucun relevé pour l\'instant : ajoute-en un dans l\'onglet Chauffe.':'Aucun relevé pour cette courbe pour l\'instant.';
 }
 
 /* ----- Onglet Par lot ----- */
@@ -1422,7 +1479,7 @@ function tabLots(ch, body){
   $('p-form').onsubmit=async e=>{ e.preventDefault(); const lot=$('p-lot').value.trim(); if(!lot){ $('p-st').textContent='Indique le numéro du lot.'; $('p-st').className='status err'; return; }
     const ent={id:uid(), type:'lot', chauffeId:ch.id, jour:Number($('p-jour').value), lot, variete:$('p-var').value.trim(), pg:$('p-pg').value.trim(), nb:num($('p-nb').value), remarque:$('p-rem').value.trim(), photos:photoIds.slice(), auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()};
     LOT_KEYS.forEach(k=>ent[k]=st[k]||'');
-    try{ await saveEntry(ent); toast('Contrôle du lot '+lot+' ajouté.'); S.jour=ent.jour; renderChauffe(); }catch(err){ $('p-st').textContent='Enregistrement impossible.'; $('p-st').className='status err'; } };
+    try{ await saveEntry(ent); toast('Contrôle du lot '+lot+' ajouté.'); S.jour=ent.jour; S.tab='lots'; renderChauffe(); }catch(err){ $('p-st').textContent='Enregistrement impossible.'; $('p-st').className='status err'; } };
   const list=entriesOf(ch.id,'lot').sort((a,b)=>(b.creeLe||'').localeCompare(a.creeLe||''));
   const el=$('p-list');
   if(!list.length){ el.innerHTML='<div class="item empty">Aucun contrôle par lot pour l\'instant.</div>'; return; }
@@ -1432,10 +1489,311 @@ function tabLots(ch, body){
       <div class="chips">${LOT_KEYS.filter(k=>r[k]).map(k=>`<span class="chip${OPTS[k].alert.includes(r[k])?' al':''}">${esc(OPTS[k].label+' : '+r[k])}</span>`).join('')}</div>${r.remarque?`<div class="rem">${esc(r.remarque)}</div>`:''}`;
     if((r.photos||[]).length){ const g=document.createElement('div'); g.className='photos'; r.photos.forEach(id=>{ const b=document.createElement('button'); b.type='button'; const im=document.createElement('img'); im.alt=''; setPhoto(im,id); b.appendChild(im); b.onclick=()=>openViewer(id,'Lot '+r.lot+' · J'+r.jour,null); g.appendChild(b); }); d.appendChild(g); }
     if(isMine(r)){ const a=document.createElement('div'); a.className='confirm'; const del=document.createElement('button'); del.type='button'; del.className='ghost'; del.textContent='Supprimer'; let c=false;
-      del.onclick=async()=>{ if(!c){ c=true; del.textContent='Toucher encore pour supprimer'; del.classList.add('danger'); return; } await removeEntry(r); for(const id of r.photos||[]){ try{ await DB.del('photos',id); }catch(e){} } toast('Contrôle supprimé.'); renderChauffe(); };
+      del.onclick=async()=>{ if(!c){ c=true; del.textContent='Toucher encore pour supprimer'; del.classList.add('danger'); return; } await removeEntry(r); for(const id of r.photos||[]){ try{ await DB.del('photos',id); }catch(e){} } toast('Contrôle supprimé.'); S.tab='lots'; renderChauffe(); };
       a.appendChild(del); d.appendChild(a); }
     el.appendChild(d); });
 }
+
+/* ----- Après chauffe : acclimatation (un ou plusieurs lieux) ----- */
+const ACC_ACTIONS=[['arrosage','Arrosage','Riego'],['brume','Brumisation','Nebulización'],['ombre+','Ombrage posé','Sombra puesta'],['ombre-','Ombrage retiré','Sombra retirada'],['aer+','Aération ouverte','Ventilación abierta'],['aer-','Aération fermée','Ventilación cerrada']];
+const ACC_ETAT={
+  pousses:{fr:'Pousses',es:'Brotes',opts:[['fermes','Fermes','Firmes'],['molles','Molles, flétries','Blandos, marchitos'],['brulees','Brûlées','Quemados']],alert:['molles','brulees']},
+  feuilles:{fr:'Feuilles',es:'Hojas',opts:[['vertes','Vertes','Verdes'],['jaunes','Jaunissent','Amarillean'],['seches','Sèches','Secas']],alert:['jaunes','seches']}
+};
+const ACC_KEYS=Object.keys(ACC_ETAT);
+const accActLabel=k=>{ const a=ACC_ACTIONS.find(x=>x[0]===k); return a?L(a[1],a[2]):k; };
+const accOptLabel=(key,v)=>{ const o=ACC_ETAT[key].opts.find(x=>x[0]===v); return o?L(o[1],o[2]):v; };
+const accNorm=X=>Object.assign({id:'',lieu:'',debut:'',duree:21,tMin:null,tMax:null,hMin:null,fin:'',lots:[]}, X||{});
+/* Liste des acclimatations de la chauffe. L'ancienne version (2.3 / 3.2) n'en gardait qu'une, dans ch.acclim : elle devient le lieu « a1 ». */
+function accList(ch){ if(Array.isArray(ch.acclims)) return ch.acclims.map(accNorm); const a=ch.acclim; return a&&a.debut?[accNorm(Object.assign({id:'a1'},a))]:[]; }
+const accOn=ch=>accList(ch).length>0;
+const accById=(ch,id)=>accList(ch).find(X=>X.id===(id||'a1'))||null;
+const accName=(ch,X)=>X.lieu||(L('Lieu ','Lugar ')+(accList(ch).findIndex(Y=>Y.id===X.id)+1));
+const accCh=X=>({debut:X.debut});
+const accDur=X=>Math.max(1, Math.min(120, Number(X.duree)||21));
+function accToday(X){ if(!X.debut) return 1; const d0=new Date(X.debut+'T12:00:00'), n=new Date(); n.setHours(12,0,0,0); const k=Math.round((n-d0)/864e5)+1; return Math.max(1,Math.min(accDur(X),k)); }
+const accEnts=(ch,X,type)=>entriesOf(ch.id,type).filter(e=>(e.accId||'a1')===X.id);
+const accRels=(ch,X,A)=>accEnts(ch,X,'accrel').filter(e=>A==null||e.ajour===A).sort((a,b)=>(a.ajour-b.ajour)||(a.heure||'').localeCompare(b.heure||''));
+const accObsDay=(ch,X,A)=>accEnts(ch,X,'accobs').filter(e=>e.ajour===A);
+const accMyObs=(ch,X,A)=>accObsDay(ch,X,A).find(isMine);
+const accLots=(ch,X)=>{ const all=ch.lots||[]; return X.lots&&X.lots.length?all.filter(l=>X.lots.includes(String(l.lot))):all; };
+const accObsAlerts=o=>ACC_KEYS.filter(k=>o[k] && ACC_ETAT[k].alert.includes(o[k])).map(k=>L(ACC_ETAT[k].fr,ACC_ETAT[k].es)+L(' : ',': ')+accOptLabel(k,o[k]));
+/* En acclimatation : r.t = température de l'air, r.tIn = température dans le palox, r.hum = humidité de l'air. */
+function accDayStat(ch,X,A){ const rs=accRels(ch,X,A), ts=rs.map(r=>r.t).filter(v=>v!=null), tis=rs.map(r=>r.tIn).filter(v=>v!=null), hs=rs.map(r=>r.hum).filter(v=>v!=null);
+  return {A, n:rs.length, tMin:ts.length?Math.min(...ts):null, tMax:ts.length?Math.max(...ts):null, tiMin:tis.length?Math.min(...tis):null, tiMax:tis.length?Math.max(...tis):null, hMin:hs.length?Math.min(...hs):null, hMax:hs.length?Math.max(...hs):null}; }
+function accTempAlerts(X,d){ const out=[];
+  if(X.tMin!=null && d.tMin!=null && d.tMin<X.tMin) out.push(L("Trop froid dans l'air : ",'Demasiado frío en el aire: ')+fmtN(d.tMin)+' °C ('+L('min. ','mín. ')+fmtN(X.tMin)+' °C)');
+  if(X.tMax!=null && d.tMax!=null && d.tMax>X.tMax) out.push(L("Trop chaud dans l'air : ",'Demasiado calor en el aire: ')+fmtN(d.tMax)+' °C ('+L('max. ','máx. ')+fmtN(X.tMax)+' °C)');
+  if(X.tMin!=null && d.tiMin!=null && d.tiMin<X.tMin) out.push(L('Trop froid dans le palox : ','Demasiado frío en el palox: ')+fmtN(d.tiMin)+' °C ('+L('min. ','mín. ')+fmtN(X.tMin)+' °C)');
+  if(X.tMax!=null && d.tiMax!=null && d.tiMax>X.tMax) out.push(L('Trop chaud dans le palox : ','Demasiado calor en el palox: ')+fmtN(d.tiMax)+' °C ('+L('max. ','máx. ')+fmtN(X.tMax)+' °C)');
+  if(X.hMin!=null && d.hMin!=null && d.hMin<X.hMin) out.push(L('Air trop sec : ','Aire demasiado seco: ')+fmtN(d.hMin)+' % ('+L('min. ','mín. ')+fmtN(X.hMin)+' %)');
+  return out; }
+function accDayAlerts(ch,X,A){ return accTempAlerts(X,accDayStat(ch,X,A)).concat(...accObsDay(ch,X,A).map(accObsAlerts)); }
+function accDayFilled(ch,X,A){ return accRels(ch,X,A).length>0 || accObsDay(ch,X,A).length>0 || accEnts(ch,X,'reprise').some(e=>e.ajour===A); }
+const accTOut=(X,v)=>v!=null && ((X.tMin!=null&&v<X.tMin)||(X.tMax!=null&&v>X.tMax));
+function accRelOut(X,r){ return accTOut(X,r.t) || accTOut(X,r.tIn) || (r.hum!=null && X.hMin!=null && r.hum<X.hMin); }
+/* Reprise : dernier contrôle de chaque lot dans ce lieu (plants regardés / plants morts). */
+function repriseByLot(ch,X){ const m={};
+  accEnts(ch,X,'reprise').slice().sort((a,b)=>(a.ajour-b.ajour)||(a.creeLe||'').localeCompare(b.creeLe||'')).forEach(e=>{ m[String(e.lot)]=e; });
+  return m; }
+const isPctReprise=e=>!!e && e.pct!=null && !(e.regardes>0);
+const repriseRate=e=>!e?null:(e.regardes>0&&e.morts!=null?Math.max(0,Math.min(1,(e.regardes-e.morts)/e.regardes)):(e.pct!=null?Math.max(0,Math.min(1,e.pct/100)):null));
+const repriseDetail=e=>isPctReprise(e)?L('saisi en pourcentage','ingresado en porcentaje'):plural(e.morts,'mort','morts','muerta','muertas')+L(' sur ',' de ')+plural(e.regardes,'regardé','regardés','revisada','revisadas');
+/* Courbe d'un lieu d'acclimatation : chaque point est un relevé ; traits pointillés = seuils. */
+function accSVG(ch,X,print,kind){
+  const C=chartInk(print); const D=Math.max(accDur(X), ...accRels(ch,X).map(r=>r.ajour));
+  const isT=kind==='t'; const unit=isT?' °C':' %';
+  const SER=isT?[{get:r=>r.t, col:'#c27c0e', lab:L('Air','Aire')},{get:r=>r.tIn, col:'#1f7a45', lab:L('Dans le palox','Dentro del palox')}]:[{get:r=>r.hum, col:'#0f8a8a', lab:''}];
+  SER.forEach(se=>{ se.pts=accRels(ch,X).filter(r=>se.get(r)!=null).map(r=>({x:r.ajour-1+hourOf(r)/24, v:se.get(r), r})).sort((a,b)=>a.x-b.x); });
+  const all=[].concat(...SER.map(se=>se.pts.map(p=>p.v))); if(!all.length) return '';
+  const lines=isT?[[X.tMax,L('max','máx')],[X.tMin,L('min','mín')]].filter(x=>x[0]!=null):[[X.hMin,L('min','mín')]].filter(x=>x[0]!=null);
+  const vals=all.concat(lines.map(x=>x[0]));
+  let lo=Math.min(...vals), hi=Math.max(...vals); if(hi-lo<(isT?4:10)){ const m=isT?2:5; lo-=m; hi+=m; }
+  const step=[1,2,5,10,20,25].find(s=>(hi-lo)/s<=6)||50; lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step; if(!isT){ lo=Math.max(0,lo); hi=Math.min(100,hi); }
+  const W=640,H=200,ml=40,mr=40,mt=14,mb=28,pw=W-ml-mr,ph=H-mt-mb;
+  const XX=t=>ml+t/D*pw, Y=v=>mt+(hi-v)/((hi-lo)||1)*ph; const mono='font-family="ui-monospace,Menlo,monospace"';
+  let g=`<rect x="0" y="0" width="${W}" height="${H}" fill="${print?C.bg:'none'}"></rect>`;
+  for(let v=lo;v<=hi+1e-9;v+=step) g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${C.grid}"></line><text x="${ml-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="${C.text}" ${mono}>${fmtN(v)}</text>`;
+  const st=Math.max(1,Math.ceil(D/10)); for(let j=1;j<=D;j+=st) g+=`<text x="${XX(j-0.5)}" y="${H-8}" text-anchor="middle" font-size="11" fill="${C.text}" ${mono}>A${j}</text>`;
+  lines.forEach(([v,lab])=>{ g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${C.bad}" stroke-width="1.2" stroke-dasharray="5 4"></line><text x="${ml+pw+4}" y="${Y(v)+4}" font-size="10" fill="${C.bad}" font-family="system-ui,sans-serif">${esc(lab)}</text>`; });
+  SER.forEach((se,k)=>{ const pts=se.pts; if(!pts.length) return;
+    if(pts.length>1) g+=`<polyline fill="none" stroke="${se.col}" stroke-width="1.8" stroke-linejoin="round" points="${pts.map(p=>XX(p.x).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')}"></polyline>`;
+    pts.forEach(p=>{ const out=isT?accTOut(X,p.v):(X.hMin!=null&&p.v<X.hMin); g+=`<circle cx="${XX(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.6" fill="${out?C.bad:se.col}" stroke="${C.bg}" stroke-width="1.2"><title>${esc((se.lab?se.lab+' · ':'')+fmtN(p.v)+unit+' · A'+p.r.ajour+(p.r.heure?' '+fmtH(p.r.heure):''))}</title></circle>`; });
+    const last=pts[pts.length-1]; g+=`<text x="${Math.min(XX(last.x)+7,W-4)}" y="${Y(last.v)+(k?12:-6)}" font-size="11" fill="${C.strong}" ${mono} text-anchor="${XX(last.x)+40>W?'end':'start'}">${fmtN(last.v)}${unit}</text>`; });
+  const leg=isT?SER.filter(se=>se.pts.length).map(se=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px"><i style="display:inline-block;width:16px;height:3px;background:${se.col}"></i>${esc(se.lab)}</span>`).join(''):'';
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(isT?L('Courbe de température','Curva de temperatura'):L("Courbe d'humidité",'Curva de humedad'))}" style="display:block;width:100%;height:auto">${g}</svg>${leg?`<div style="font-size:12.5px;color:${C.text};display:flex;flex-wrap:wrap;gap:4px 0">${leg}</div>`:''}`;
+}
+function accChartsHTML(ch,X,print){ const t=accSVG(ch,X,print,'t'), h=accSVG(ch,X,print,'h'); if(!t&&!h) return '';
+  const ttl=(x)=>print?`<p class="small" style="margin:8px 0 2px"><b>${esc(x)}</b></p>`:`<span class="lab">${esc(x)}</span>`;
+  return (t?ttl(L('Température (°C)','Temperatura (°C)'))+t:'')+(h?ttl(L('Humidité de l\'air (%)','Humedad del aire (%)'))+h:''); }
+function accSeuilsText(X){ const p=[]; if(X.tMin!=null) p.push(L('T° min. ','T° mín. ')+fmtN(X.tMin)+' °C'); if(X.tMax!=null) p.push(L('T° max. ','T° máx. ')+fmtN(X.tMax)+' °C'); if(X.hMin!=null) p.push(L('HR min. ','HR mín. ')+fmtN(X.hMin)+' %'); return p.join(' · '); }
+const accLotsText=(ch,X)=>X.lots&&X.lots.length?(X.lots.length>1?L('Lots ','Lotes '):L('Lot ','Lote '))+X.lots.join(', '):L('Tous les lots','Todos los lotes');
+async function saveAccList(ch,list){ await saveChauffe(Object.assign({}, ch, {acclims:list, acclim:null})); }
+
+function tabAcclim(ch, body){
+  const list=accList(ch);
+  S.accSel=S.accSel||{};
+  if(S.accNew===ch.id || !list.length){ body.innerHTML=accIntroHTML(list)+accTabsHTML(ch,list,null)+accSetHTML(ch,null); bindAccTabs(ch); bindAccSet(ch,null); return; }
+  let X=list.find(Y=>Y.id===S.accSel[ch.id])||list[0]; S.accSel[ch.id]=X.id;
+  const editSet=S.accEdit===ch.id+':'+X.id;
+  const key=ch.id+':'+X.id;
+  if(S.ajour==null || S.ajourCh!==key){ S.ajour=accToday(X); S.ajourCh=key; }
+  if(S.ajour>accDur(X)) S.ajour=accDur(X);
+  const A=S.ajour; const lots=accLots(ch,X);
+  const mine=accMyObs(ch,X,A)||{}; const acts=new Set(mine.actions||[]); const st={}; ACC_KEYS.forEach(k=>st[k]=mine[k]||'');
+  const rels=accRels(ch,X,A); const others=accObsDay(ch,X,A).filter(o=>!isMine(o));
+  const rep=repriseByLot(ch,X); const lw=lotsWithBilan(ch).filter(l=>!(X.lots&&X.lots.length) || X.lots.includes(l.lot));
+  const repList=accEnts(ch,X,'reprise').slice().sort((x,y)=>(y.ajour-x.ajour)||(y.creeLe||'').localeCompare(x.creeLe||''));
+  const fin=accCh(X);
+  body.innerHTML=`
+    ${accTabsHTML(ch,list,X.id)}
+    ${editSet?accSetHTML(ch,X):`<div class="card" style="gap:6px"><div class="hhead"><h3>${esc(accName(ch,X))}</h3><button class="linkbtn" type="button" id="a-edit">${esc(L('Modifier','Modificar'))}</button></div>
+      <div class="rem">${esc(L('Du ','Del ')+dayLabel(fin,1)+L(' · prévu ',' · previsto ')+plural(accDur(X),'jour','jours','día','días'))}${X.fin?' · '+esc(L('fin le ','fin el ')+X.fin.split('-').reverse().join('/')):''}</div>
+      ${(ch.lots||[]).length?`<div class="rem">${esc(accLotsText(ch,X))}</div>`:''}
+      ${accSeuilsText(X)?`<div class="seuilsline">${esc(accSeuilsText(X))}</div>`:''}</div>`}
+    ${accChartsHTML(ch,X,false)?`<div class="card" style="gap:8px"><h3 class="ctitle">${esc(L('Courbes','Curvas'))} · ${esc(accName(ch,X))}</h3><p class="note">${esc(L('Chaque point est un relevé ; en rouge, hors seuil. Les traits pointillés sont les seuils.','Cada punto es una lectura; en rojo, fuera de umbral. Las líneas punteadas son los umbrales.'))}</p>${accChartsHTML(ch,X,false)}</div>`:''}
+    <div class="field"><span class="lab">${esc(L('Jour','Día'))}</span><div class="dates" id="a-dates"></div></div>
+    <form class="card" id="a-form" autocomplete="off">
+      <div class="hhead"><h3>A${A} · ${esc(dayLabel(fin,A))}</h3><span class="mono">${esc(accName(ch,X))}</span></div>
+      <div class="field">
+        <span class="lab">${esc(L('Relevés','Lecturas'))}</span>
+        <div class="list" id="a-rels"></div>
+        <div class="field"><label for="a-h">${esc(L('Heure du relevé','Hora de la lectura'))}</label><input id="a-h" type="time" value="${hhmm()}"></div>
+        ${S.thEdit==='acc'?thermoManagerHTML(ch):`<button class="linkbtn" type="button" id="a-thm">${esc(thermosAcc().length?L('Thermomètres : ','Termómetros: ')+thermosAcc().map(t=>t.nom).join(', ')+L(' · Gérer',' · Gestionar'):L('Plusieurs thermomètres ? Donne-leur un nom','¿Varios termómetros? Ponles un nombre'))}</button>`}
+        ${thermoInputsHTML(thermosAcc(),'a-th-','ath','a-thavg',L("Laisse vide un thermomètre qui n'est pas dans ce lieu.","Deja vacío un termómetro que no está en este lugar."))}
+        ${thermosAcc().length?'<input id="a-t" type="hidden"><input id="a-ti" type="hidden">':`<div class="two"><div class="field"><label for="a-ti">${esc(L('T° dans le palox (°C)','T° dentro del palox (°C)'))}</label><input id="a-ti" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
+        <div class="field"><label for="a-t">${esc(L("T° de l'air (°C)",'T° del aire (°C)'))}</label><input id="a-t" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div></div>`}
+        <div class="field"><label for="a-hum">${esc(L("Humidité de l'air (%)",'Humedad del aire (%)'))}</label><input id="a-hum" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
+        <span class="ex">${esc(L("Ex. : 15h · palox 24 °C · air 27 °C · 65 %. Une seule valeur suffit.","Ej.: 15h · palox 24 °C · aire 27 °C · 65 %. Basta con un valor."))}</span>
+        <button class="primary" id="a-addrel" type="button">${esc(L('+ Ajouter ce relevé','+ Agregar esta lectura'))}</button>
+      </div>
+      <div class="field"><span class="lab">${esc(L('Actions du jour','Acciones del día'))} <span class="hint">${esc(L('(plusieurs possibles)','(varias posibles)'))}</span></span><div class="seg" id="a-acts">${ACC_ACTIONS.map(x=>`<button type="button" data-v="${esc(x[0])}" aria-pressed="${acts.has(x[0])}">${esc(L(x[1],x[2]))}</button>`).join('')}</div></div>
+      ${ACC_KEYS.map(k=>`<div class="field"><span class="lab">${esc(L(ACC_ETAT[k].fr,ACC_ETAT[k].es))}</span><div class="seg" id="aseg-${k}">${ACC_ETAT[k].opts.map(o=>`<button type="button" data-v="${esc(o[0])}" class="${ACC_ETAT[k].alert.includes(o[0])?'alert':''}" aria-pressed="${st[k]===o[0]}">${esc(L(o[1],o[2]))}</button>`).join('')}</div></div>`).join('')}
+      <div class="field"><label for="a-rem">${esc(L('Remarques','Observaciones'))}</label><textarea id="a-rem" placeholder="${esc(L("Ce que tu as fait ou remarqué aujourd'hui","Lo que hiciste o notaste hoy"))}">${esc(mine.remarque||'')}</textarea><span class="ex">${esc(L('Ex. : ombrière ouverte le matin, arrosage 10 min à 17h.','Ej.: malla sombra abierta en la mañana, riego 10 min a las 17h.'))}</span></div>
+      <div id="a-alert" class="alertbox" hidden></div>
+      <div class="field" id="a-raisonf" hidden><label for="a-raison">${esc(L('Raison du problème','Causa del problema'))} <span class="hint">${esc(L('(apparaît dans le registre PDF)','(aparece en el registro PDF)'))}</span></label><textarea id="a-raison" placeholder="${esc(L("Pourquoi c'est arrivé et ce qui a été fait","Por qué pasó y qué se hizo"))}">${esc(mine.raison||'')}</textarea><span class="ex">${esc(L("Ex. : ombrière retirée trop tôt, coup de soleil l'après-midi ; ombrage remis.","Ej.: malla sombra retirada muy pronto, golpe de sol en la tarde; sombra puesta de nuevo."))}</span></div>
+      <button class="primary" type="submit">${esc(L('Enregistrer la journée','Guardar el día'))}</button>
+      <div class="status" id="a-st" role="status"></div>
+      ${others.length?`<div class="others"><span class="lab">${esc(L('Observations des collaborateurs','Observaciones de los colaboradores'))}</span>${others.map(o=>`<div><div class="who">${esc(authorName(o))}</div><div class="chips">${(o.actions||[]).map(k=>`<span class="chip">${esc(accActLabel(k))}</span>`).join('')}${ACC_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${ACC_ETAT[k].alert.includes(o[k])?' al':''}">${esc(L(ACC_ETAT[k].fr,ACC_ETAT[k].es)+' : '+accOptLabel(k,o[k]))}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}${o.raison?`<div class="rem"><b>${esc(L('Raison du problème : ','Causa del problema: '))}</b>${esc(o.raison)}</div>`:''}</div>`).join('')}</div>`:''}
+    </form>
+    <form class="card" id="r-form" autocomplete="off">
+      <h3>${esc(L('Contrôle de reprise par lot','Control de prendimiento por lote'))}</h3>
+      <p class="note">${esc(L("Compte les plants morts sur un échantillon du lot (ou le lot entier). Le dernier contrôle de chaque lot donne sa reprise dans ce lieu.","Cuenta las plantas muertas en una muestra del lote (o el lote entero). El último control de cada lote da su prendimiento en este lugar."))}</p>
+      <div class="field"><label for="r-lot">${esc(L('N° de lot','N° de lote'))}</label><input id="r-lot" type="text" inputmode="numeric" list="r-lotsref" placeholder="${esc(L('Numéro','Número'))}"><datalist id="r-lotsref">${lots.map(l=>`<option value="${esc(l.lot)}">${esc(L('Lot ','Lote ')+l.lot+' · '+[l.variete,l.pg].filter(Boolean).join(' / '))}</option>`).join('')}</datalist><span class="ex" id="r-lotinfo">${esc(L('Variété et porte-greffe sont repris de la chauffe.','Variedad y portainjerto vienen de la calefacción.'))}</span></div>
+      <div class="field"><span class="lab">${esc(L('Comment saisir ?','¿Cómo ingresar?'))}</span><div class="seg" id="r-mode"><button type="button" data-v="compte" aria-pressed="${S.repMode!=='pct'}">${esc(L('Compter les plants','Contar las plantas'))}</button><button type="button" data-v="pct" aria-pressed="${S.repMode==='pct'}">${esc(L('Pourcentage direct','Porcentaje directo'))}</button></div></div>
+      <div id="r-cntbox"${S.repMode==='pct'?' hidden':''}><div class="two"><div class="field"><label for="r-reg">${esc(L('Plants regardés','Plantas revisadas'))}</label><input id="r-reg" class="num" type="text" inputmode="numeric" placeholder="N°"></div>
+      <div class="field"><label for="r-morts">${esc(L('Plants morts','Plantas muertas'))}</label><input id="r-morts" class="num" type="text" inputmode="numeric" placeholder="N°"></div></div>
+      <span class="ex">${esc(L('Ex. : 100 regardés, 4 morts → reprise 96 %.','Ej.: 100 revisadas, 4 muertas → prendimiento 96 %.'))}</span></div>
+      <div id="r-pctbox" class="field"${S.repMode==='pct'?'':' hidden'}><label for="r-pct">${esc(L('Reprise (%)','Prendimiento (%)'))}</label><input id="r-pct" class="num" type="text" inputmode="decimal" placeholder="%"><span class="ex">${esc(L('Ex. : 95 ou 92,5. Pratique si le chef de culture te donne directement le pourcentage.','Ej.: 95 o 92,5. Útil si el jefe de cultivo te da directamente el porcentaje.'))}</span></div>
+      <div class="field"><label for="r-rem">${esc(L('Remarques','Observaciones'))}</label><input id="r-rem" type="text" placeholder="${esc(L('Ce que tu as remarqué sur ce lot','Lo que notaste en este lote'))}"></div>
+      <button class="primary" type="submit">${esc(L('Ajouter ce contrôle','Agregar este control'))}</button>
+      <div class="status" id="r-st"></div>
+    </form>
+    ${lw.length?`<div class="card" style="gap:8px"><h3>${esc(L('Résumé par lot','Resumen por lote'))} · ${esc(accName(ch,X))}</h3><div class="scrollx"><table class="mini"><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Triage','Selección'))}</th><th>${esc(L('Reprise','Prendimiento'))}</th></tr></thead><tbody>${lw.map(l=>{ const e=rep[l.lot]; return `<tr><td>${esc(l.lot)}${l.variete||l.pg?' <span class="small">'+esc([l.variete,l.pg].filter(Boolean).join('/'))+'</span>':''}</td><td>${l.b?pct(bilanRate(l.b)):'—'}</td><td>${e?pct(repriseRate(e))+' <span class="small">(A'+e.ajour+')</span>':'—'}</td></tr>`; }).join('')}</tbody></table></div></div>`:''}
+    <div class="list" id="r-list"></div>`;
+  bindAccTabs(ch);
+  if(editSet) bindAccSet(ch,X); else $('a-edit').onclick=()=>{ S.accEdit=ch.id+':'+X.id; renderChauffe(); };
+  // jours
+  const dEl=$('a-dates');
+  for(let j=1;j<=accDur(X);j++){ const b=document.createElement('button'); b.type='button';
+    b.innerHTML='<small>A'+j+'</small>'+esc(dayShort(fin,j));
+    if(accDayFilled(ch,X,j)) b.classList.add('done'); b.setAttribute('aria-pressed',j===A);
+    b.onclick=()=>{ S.ajour=j; renderChauffe(); }; dEl.appendChild(b); }
+  const cur=dEl.querySelector('[aria-pressed="true"]'); if(cur) cur.scrollIntoView({inline:'center',block:'nearest'});
+  // relevés
+  const relEl=$('a-rels');
+  if(!rels.length) relEl.innerHTML=`<div class="rel none">${esc(L('Aucun relevé pour ce jour.','Ninguna lectura para este día.'))}</div>`;
+  rels.forEach(r=>{ const d=document.createElement('div'); const o=accRelOut(X,r); d.className='rel'+(o?' out':''); const s=document.createElement('span');
+    s.innerHTML=(o?'⚠ ':'')+esc([r.heure?fmtH(r.heure):L('heure ?','hora ?'), r.tIn!=null?'palox '+fmtN(r.tIn)+' °C':null, r.t!=null?L('air ','aire ')+fmtN(r.t)+' °C':null, r.hum!=null?'HR '+fmtN(r.hum)+' %':null].filter(Boolean).join(' · '))+(isMine(r)?'':'<small>'+esc(authorName(r))+'</small>')+(r.thermos&&r.thermos.length?'<br><small class="thd">'+r.thermos.map(t=>'<span'+(accTOut(X,t.v)?' class="thout"':'')+'>'+esc(t.nom+' '+fmtN(t.v)+' °C')+'</span>').join(' · ')+'</small>':'');
+    d.appendChild(s);
+    if(isMine(r)){ const b=document.createElement('button'); b.type='button'; b.textContent=L('Retirer','Quitar'); b.onclick=async()=>{ await removeEntry(r); toast(L('Relevé retiré.','Lectura quitada.')); renderChauffe(); }; d.appendChild(b); }
+    relEl.appendChild(d); });
+  let dirty=false;
+  $('a-acts').querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; if(acts.has(v)) acts.delete(v); else acts.add(v); b.setAttribute('aria-pressed',acts.has(v)); dirty=true; });
+  const tAl=accTempAlerts(X,accDayStat(ch,X,A));
+  const showAlert=()=>{ const al=accObsAlerts(st).concat(tAl); const box=$('a-alert'); box.hidden=!al.length; box.innerHTML=al.length?'<strong>'+esc(L('À signaler à ','Avisar a ')+S.prevenir)+'</strong><span>'+al.map(esc).join(' · ')+'</span>':''; $('a-raisonf').hidden=!al.length && !$('a-raison').value.trim(); };
+  ACC_KEYS.forEach(k=>{ const el=$('aseg-'+k); el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ st[k]=st[k]===b.dataset.v?'':b.dataset.v; el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===st[k])); dirty=true; showAlert(); }); });
+  showAlert();
+  $('a-rem').oninput=()=>{ dirty=true; }; $('a-raison').oninput=()=>{ dirty=true; };
+  async function saveObs(){
+    const rem=$('a-rem').value.trim(), raison=$('a-raison').value.trim(); const ex=accMyObs(ch,X,A);
+    const hasAny=acts.size||ACC_KEYS.some(k=>st[k])||rem||raison; if(!hasAny && !ex) return;
+    const e=Object.assign({}, ex||{id:'accobs:'+ch.id+':'+X.id+':'+A+':'+S.me.id, type:'accobs', chauffeId:ch.id, accId:X.id, ajour:A, auteurId:S.me.id, creeLe:nowIso()});
+    e.actions=[...acts]; ACC_KEYS.forEach(k=>e[k]=st[k]||''); e.remarque=rem; e.raison=raison; e.auteurNom=S.me.nom; delete e.supprime;
+    await saveEntry(e); dirty=false; }
+  const athVals=()=>thermosAcc().map(t=>({id:t.id, nom:t.nom, pos:t.pos, v:num(($('a-th-'+t.id)||{}).value)})).filter(t=>t.v!=null);
+  const pending=()=>{ const TV=athVals(); const TH=thermosAcc().length; const t=TH?thAvg(TV.filter(x=>x.pos==='ext').map(x=>x.v)):num($('a-t').value), ti=TH?thAvg(TV.filter(x=>x.pos==='in').map(x=>x.v)):num($('a-ti').value), h=num($('a-hum').value); return (t==null&&ti==null&&h==null)?null:{t,tIn:ti,hum:h,thermos:TV.length?TV:null}; };
+  async function addRel(){ const stEl=$('a-st'); const p=pending();
+    if(!p){ stEl.textContent=([...document.querySelectorAll('.ath')].some(x=>x.value)||$('a-t').value||$('a-ti').value||$('a-hum').value)?L('Valeur illisible : tape seulement le nombre, par exemple 28 ou 28,5.','Valor ilegible: escribe solo el número, por ejemplo 28 o 28,5.'):L('Indique au moins une valeur.','Indica al menos un valor.'); stEl.className='status err'; return; }
+    if(p.hum!=null && (p.hum<0||p.hum>100)){ stEl.textContent=L("L'humidité doit être entre 0 et 100 %.",'La humedad debe estar entre 0 y 100 %.'); stEl.className='status err'; return; }
+    try{ const ent={id:uid(), type:'accrel', chauffeId:ch.id, accId:X.id, ajour:A, heure:$('a-h').value||'', t:p.t, tIn:p.tIn, hum:p.hum, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()}; if(p.thermos) ent.thermos=p.thermos;
+      await saveEntry(ent); if(dirty) await saveObs();
+      toast(accRelOut(X,ent)?L('⚠ Hors seuil : relevé enregistré.','⚠ Fuera de umbral: lectura guardada.'):L('Relevé enregistré.','Lectura guardada.')); renderChauffe(); }
+    catch(err){ stEl.textContent=L('Enregistrement impossible : stockage plein ou bloqué.','No se pudo guardar: almacenamiento lleno o bloqueado.'); stEl.className='status err'; } }
+  $('a-addrel').onclick=addRel;
+  ['a-t','a-ti','a-hum','a-h'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addRel(); } }));
+  document.querySelectorAll('.ath').forEach(el=>{ el.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addRel(); } }); el.addEventListener('input',()=>{ $('a-thavg').innerHTML=thermoAvgText(athVals()); }); });
+  if($('a-thm')) $('a-thm').onclick=()=>{ S.thEdit='acc'; S.thDraft=thermosPhase('acc').map(t=>Object.assign({},t)); if(!S.thDraft.length) S.thDraft.push({id:'thermo:'+uid(), nom:'', pos:'ext'}); renderChauffe(); setTimeout(()=>{ const m=$('th-man'); if(m) m.scrollIntoView({block:'start'}); },30); };
+  bindThermoManager(ch);
+  $('a-form').onsubmit=async e=>{ e.preventDefault(); if(pending()) return addRel();
+    try{ await saveObs(); toast(L('Journée enregistrée.','Día guardado.')); renderChauffe(); }catch(err){ $('a-st').textContent=L('Enregistrement impossible.','No se pudo guardar.'); $('a-st').className='status err'; } };
+  // reprise
+  const allLots=ch.lots||[];
+  $('r-lot').oninput=()=>{ const l=allLots.find(x=>String(x.lot)===$('r-lot').value.trim()); $('r-lotinfo').textContent=l?L('Lot ','Lote ')+l.lot+' · '+([l.variete,l.pg].filter(Boolean).join(' / ')||'—'):L('Variété et porte-greffe sont repris de la chauffe.','Variedad y portainjerto vienen de la calefacción.'); };
+  $('r-mode').querySelectorAll('button').forEach(b=>b.onclick=()=>{ S.repMode=b.dataset.v; $('r-mode').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); $('r-pctbox').hidden=S.repMode!=='pct'; $('r-cntbox').hidden=S.repMode==='pct'; $('r-st').textContent=''; });
+  $('r-form').onsubmit=async e=>{ e.preventDefault(); const stEl=$('r-st'); const lot=$('r-lot').value.trim(), reg=num($('r-reg').value), mo=num($('r-morts').value);
+    if(!lot){ stEl.textContent=L('Indique le numéro du lot.','Indica el número del lote.'); stEl.className='status err'; $('r-lot').focus(); return; }
+    if(S.repMode==='pct'){ const pv=num($('r-pct').value);
+      if(pv==null||pv<0||pv>100){ stEl.textContent=L('Indique un pourcentage entre 0 et 100.','Indica un porcentaje entre 0 y 100.'); stEl.className='status err'; return; }
+      const l=allLots.find(x=>String(x.lot)===lot)||{}; const bl=bilanOf(ch.id,lot)||{};
+      const ent={id:uid(), type:'reprise', chauffeId:ch.id, accId:X.id, ajour:A, lot, variete:l.variete||bl.variete||'', pg:l.pg||bl.pg||'', pct:Math.round(pv*10)/10, regardes:null, morts:null, remarque:$('r-rem').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()};
+      try{ await saveEntry(ent); toast(L('Lot ','Lote ')+lot+L(' : reprise ',': prendimiento ')+pct(repriseRate(ent))+'.'); renderChauffe(); }catch(err){ stEl.textContent=L('Enregistrement impossible.','No se pudo guardar.'); stEl.className='status err'; }
+      return; }
+    if(!(reg>0)){ stEl.textContent=L('Indique le nombre de plants regardés.','Indica el número de plantas revisadas.'); stEl.className='status err'; return; }
+    if(mo==null||mo<0){ stEl.textContent=L('Indique le nombre de plants morts (0 si aucun).','Indica el número de plantas muertas (0 si ninguna).'); stEl.className='status err'; return; }
+    if(mo>reg){ stEl.textContent=L('Il ne peut pas y avoir plus de plants morts que de plants regardés.','No puede haber más plantas muertas que revisadas.'); stEl.className='status err'; return; }
+    const l=allLots.find(x=>String(x.lot)===lot)||{}; const bl=bilanOf(ch.id,lot)||{};
+    const ent={id:uid(), type:'reprise', chauffeId:ch.id, accId:X.id, ajour:A, lot, variete:l.variete||bl.variete||'', pg:l.pg||bl.pg||'', regardes:Math.round(reg), morts:Math.round(mo), remarque:$('r-rem').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()};
+    try{ await saveEntry(ent); toast(L('Lot ','Lote ')+lot+L(' : reprise ',': prendimiento ')+pct(repriseRate(ent))+'.'); renderChauffe(); }catch(err){ stEl.textContent=L('Enregistrement impossible.','No se pudo guardar.'); stEl.className='status err'; } };
+  const rl=$('r-list');
+  repList.forEach(r=>{ const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<div class="hhead"><span class="d">${esc(L('Lot ','Lote ')+r.lot)}${r.variete||r.pg?' · '+esc([r.variete,r.pg].filter(Boolean).join(' / ')):''}</span><span class="mono">A${r.ajour} · ${esc(dayShort(fin,r.ajour))}</span></div>
+      <div class="raterow">${rateBar(repriseRate(r))}<span class="rv mono">${pct(repriseRate(r))}</span></div>
+      <div class="rem">${esc(repriseDetail(r))}${r.remarque?' · '+esc(r.remarque):''}</div><div class="who">${esc(authorName(r))}</div>`;
+    if(isMine(r)){ const del=document.createElement('button'); del.type='button'; del.className='ghost'; del.textContent=L('Supprimer','Eliminar'); let c=false;
+      del.onclick=async()=>{ if(!c){ c=true; del.textContent=L('Toucher encore pour supprimer','Tocar otra vez para eliminar'); del.classList.add('danger'); return; } await removeEntry(r); toast(L('Contrôle supprimé.','Control eliminado.')); renderChauffe(); };
+      d.appendChild(del); }
+    rl.appendChild(d); });
+}
+function accIntroHTML(list){ return list.length?'':`<p class="note">${esc(L("Après la sortie de chauffe, les plants passent par une période d'acclimatation (endurcissement) avant la plantation. Note ici les conditions, les arrosages et l'état des plants, jour par jour, puis la reprise de chaque lot. Si les lots vont dans des endroits différents, crée un lieu pour chacun. Tout apparaît dans le registre PDF à la suite de la chauffe.","Después de la salida de la calefacción, las plantas pasan por un período de aclimatación (endurecimiento) antes de la plantación. Anota aquí las condiciones, los riegos y el estado de las plantas, día por día, y luego el prendimiento de cada lote. Si los lotes van a lugares distintos, crea un lugar para cada uno. Todo aparece en el registro PDF a continuación de la calefacción."))}</p>`; }
+function accTabsHTML(ch,list,selId){
+  if(!list.length) return '';
+  return `<div class="field"><span class="lab">${esc(L("Lieux d'acclimatation","Lugares de aclimatación"))}</span><div class="seg" id="a-lieux">${list.map(X=>`<button type="button" data-v="${esc(X.id)}" aria-pressed="${X.id===selId}">${esc(accName(ch,X))}</button>`).join('')}<button type="button" data-v="+new" aria-pressed="${selId==null}">${esc(L('+ Autre lieu','+ Otro lugar'))}</button></div></div>`; }
+function bindAccTabs(ch){ const el=$('a-lieux'); if(!el) return;
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; S.accEdit=null;
+    if(v==='+new'){ S.accNew=ch.id; } else { S.accNew=null; S.accSel=S.accSel||{}; S.accSel[ch.id]=v; }
+    renderChauffe(); }); }
+function accSetHTML(ch,X){
+  const isNew=!X; const a=accNorm(X); const lots=ch.lots||[]; const used=new Set(a.lots||[]);
+  const others=accList(ch).filter(Y=>!X||Y.id!==X.id);
+  return `<form class="card" id="a-set" autocomplete="off">
+      <h3>${esc(isNew?(others.length?L("Nouveau lieu d'acclimatation","Nuevo lugar de aclimatación"):L("Mise en place de l'acclimatation","Inicio de la aclimatación")):L('Modifier ce lieu','Modificar este lugar'))}</h3>
+      ${isNew?`<p class="note">${esc(L("Les lots, variétés et porte-greffes sont repris de la chauffe : rien à ressaisir.","Los lotes, variedades y portainjertos vienen de la calefacción: nada que volver a ingresar."))}</p>`:''}
+      <div class="field"><label for="a-lieu">${esc(L('Lieu','Lugar'))}</label><input id="a-lieu" type="text" value="${esc(a.lieu)}" placeholder="${esc(L("Endroit où sont les plants","Lugar donde están las plantas"))}"><span class="ex">${esc(L('Ex. : tunnel 2, serre, ombrière, plein champ.','Ej.: túnel 2, invernadero, malla sombra, campo.'))}</span></div>
+      ${lots.length?`<div class="field"><span class="lab">${esc(L('Lots dans ce lieu','Lotes en este lugar'))}</span><div class="seg" id="a-lots">${lots.map(l=>`<button type="button" data-v="${esc(l.lot)}" aria-pressed="${used.has(String(l.lot))}">${esc(l.lot)}${l.pg?' <small>'+esc(l.pg)+'</small>':''}</button>`).join('')}</div><span class="ex">${esc(L("Touche les lots qui sont ici. Si tu n'en touches aucun, c'est tous les lots de la chauffe.","Toca los lotes que están aquí. Si no tocas ninguno, son todos los lotes de la calefacción."))}</span></div>`:''}
+      <div class="two"><div class="field"><label for="a-debut">${esc(L('Date de début','Fecha de inicio'))}</label><input id="a-debut" type="date" value="${esc(a.debut||ch.sortie||'')}"></div>
+      <div class="field"><label for="a-duree">${esc(L('Durée prévue (jours)','Duración prevista (días)'))}</label><input id="a-duree" class="num" type="text" inputmode="numeric" value="${esc(a.duree)}"></div></div>
+      ${isNew?`<span class="ex">${esc(L("La date de début est proposée à partir de la date de sortie de chauffe (onglet Triage).","La fecha de inicio se propone a partir de la fecha de salida de la calefacción (pestaña Selección)."))}</span>`:''}
+      <span class="lab">${esc(L("Seuils d'alerte","Umbrales de alerta"))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></span>
+      <div class="three"><div class="field"><label for="a-tmin">${esc(L('T° min. (°C)','T° mín. (°C)'))}</label><input id="a-tmin" class="num" type="text" inputmode="decimal" value="${a.tMin!=null?esc(fmtN(a.tMin)):''}"></div>
+      <div class="field"><label for="a-tmax">${esc(L('T° max. (°C)','T° máx. (°C)'))}</label><input id="a-tmax" class="num" type="text" inputmode="decimal" value="${a.tMax!=null?esc(fmtN(a.tMax)):''}"></div>
+      <div class="field"><label for="a-hmin">${esc(L('HR min. (%)','HR mín. (%)'))}</label><input id="a-hmin" class="num" type="text" inputmode="decimal" value="${a.hMin!=null?esc(fmtN(a.hMin)):''}"></div></div>
+      <span class="ex">${esc(L("Ex. : T° min. 10, T° max. 32, HR min. 60. Laisse vide si tu ne veux pas d'alerte.","Ej.: T° mín. 10, T° máx. 32, HR mín. 60. Deja vacío si no quieres alerta."))}</span>
+      <div class="field"><label for="a-fin">${esc(L('Fin : plantation en pépinière ou mise en jauge','Fin: plantación en vivero o puesta en zanja'))} <span class="hint">${esc(L('(à remplir à la fin)','(llenar al final)'))}</span></label><input id="a-fin" type="date" value="${esc(a.fin||'')}"></div>
+      <div class="row"><button class="primary" type="submit">${esc(isNew?(others.length?L('Ajouter ce lieu','Agregar este lugar'):L("Commencer l'acclimatation","Empezar la aclimatación")):L('Enregistrer','Guardar'))}</button>${others.length||!isNew?`<button class="ghost" type="button" id="a-setx">${esc(L('Annuler','Cancelar'))}</button>`:''}</div>
+      ${!isNew?`<button class="ghost danger" type="button" id="a-del">${esc(L('Supprimer ce lieu et ses notes','Eliminar este lugar y sus notas'))}</button>`:''}
+      <div class="status" id="a-setst"></div>
+    </form>`;
+}
+function bindAccSet(ch,X){
+  const sel=new Set((X&&X.lots)||[]);
+  const lb=$('a-lots'); if(lb) lb.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; if(sel.has(v)) sel.delete(v); else sel.add(v); b.setAttribute('aria-pressed',sel.has(v)); });
+  if($('a-setx')) $('a-setx').onclick=()=>{ S.accEdit=null; S.accNew=null; renderChauffe(); };
+  if($('a-del')){ let c=false; $('a-del').onclick=async()=>{ if(!c){ c=true; $('a-del').textContent=L('Toucher encore pour supprimer définitivement','Tocar otra vez para eliminar definitivamente'); return; }
+    const ents=S.entrees.filter(e=>!e.supprime && e.chauffeId===ch.id && ['accrel','accobs','reprise'].includes(e.type) && (e.accId||'a1')===X.id).map(e=>Object.assign({},e,{supprime:true}));
+    await saveEntries(ents); await saveAccList(curChauffe(), accList(curChauffe()).filter(Y=>Y.id!==X.id)); S.accEdit=null; toast(L('Lieu supprimé.','Lugar eliminado.')); renderChauffe(); }; }
+  $('a-set').onsubmit=async e=>{ e.preventDefault(); const stEl=$('a-setst');
+    const debut=$('a-debut').value||''; if(!debut){ stEl.textContent=L('Indique la date de début.','Indica la fecha de inicio.'); stEl.className='status err'; $('a-debut').focus(); return; }
+    const duree=Math.round(num($('a-duree').value)||0); if(!(duree>=1&&duree<=120)){ stEl.textContent=L('Indique une durée entre 1 et 120 jours.','Indica una duración entre 1 y 120 días.'); stEl.className='status err'; return; }
+    const tMin=num($('a-tmin').value), tMax=num($('a-tmax').value), hMin=num($('a-hmin').value);
+    if(tMin!=null&&tMax!=null&&tMin>=tMax){ stEl.textContent=L('La T° min. doit être plus basse que la T° max.','La T° mín. debe ser más baja que la T° máx.'); stEl.className='status err'; return; }
+    const c=curChauffe(); const list=accList(c);
+    const lotsOrder=(c.lots||[]).map(l=>String(l.lot)).filter(v=>sel.has(v));
+    const data={lieu:$('a-lieu').value.trim(), debut, duree, tMin, tMax, hMin, fin:$('a-fin').value||'', lots:lotsOrder};
+    let id;
+    if(X){ id=X.id; const i=list.findIndex(Y=>Y.id===X.id); list[i]=Object.assign({},list[i],data); }
+    else { id='acc-'+uid(); list.push(Object.assign({id},data)); }
+    await saveAccList(c,list);
+    S.accEdit=null; S.accNew=null; S.accSel=S.accSel||{}; S.accSel[ch.id]=id; S.ajourCh=null;
+    toast(X?L('Lieu enregistré.','Lugar guardado.'):(list.length>1?L('Lieu ajouté.','Lugar agregado.'):L('Acclimatation commencée.','Aclimatación iniciada.'))); renderChauffe(); };
+}
+function accRegistreHTML(ch, num){
+  const list=accList(ch);
+  /* Notes sans lieu connu (lieu supprimé ailleurs) : on les ignore. */
+  if(!list.length) return '';
+  const rng=(x,y)=>x==null?'—':(x===y?fmtN(x):fmtN(x)+'–'+fmtN(y));
+  return `<section><h3>${esc((num||6)+'. '+L('Acclimatation (après chauffe)','Aclimatación (después de la calefacción)'))}</h3>${list.map((X,i)=>{
+    const fin=accCh(X); const n=accDur(X);
+    const days=[]; for(let j=1;j<=n;j++) if(accDayFilled(ch,X,j)) days.push(j);
+    ['accrel','accobs','reprise'].forEach(t=>accEnts(ch,X,t).forEach(e=>{ if(e.ajour>n && !days.includes(e.ajour)) days.push(e.ajour); }));
+    const rep=repriseByLot(ch,X); const lw=lotsWithBilan(ch);
+    Object.keys(rep).forEach(k=>{ if(!lw.some(l=>l.lot===k)) lw.push({lot:k, variete:rep[k].variete, pg:rep[k].pg, b:null}); });
+    const rows=lw.filter(l=>rep[l.lot]);
+    return `<div class="accbloc"><h4>${esc((num||6)+'.'+(i+1)+' '+accName(ch,X))}</h4><dl>
+      ${(ch.lots||[]).length?`<dt>${esc(L('Lots','Lotes'))}</dt><dd>${esc(accLotsText(ch,X))}</dd>`:''}
+      <dt>${esc(L('Période','Período'))}</dt><dd>${X.debut?esc(X.debut.split('-').reverse().join('/'))+(X.fin?esc(L(' au ',' al ')+X.fin.split('-').reverse().join('/')):esc(L(' · prévu ',' · previsto ')+plural(n,'jour','jours','día','días'))):'—'}</dd>
+      <dt>${esc(L('Seuils','Umbrales'))}</dt><dd>${esc(accSeuilsText(X)||'—')}</dd>
+    </dl>
+    ${accChartsHTML(ch,X,true)?`<div class="fig">${accChartsHTML(ch,X,true)}</div>`:''}
+    ${days.length?`<div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Date','Fecha'))}</th><th>${esc(L('T° palox (°C)','T° palox (°C)'))}</th><th>${esc(L('T° air (°C)','T° aire (°C)'))}</th><th>${esc(L('HR air (%)','HR aire (%)'))}</th><th>${esc(L('Actions','Acciones'))}</th><th>${esc(L('État des plants','Estado de las plantas'))}</th><th>${esc(L('Alertes','Alertas'))}</th></tr></thead><tbody>${days.map(j=>{ const d=accDayStat(ch,X,j), os=accObsDay(ch,X,j), al=accDayAlerts(ch,X,j);
+      const acts=[...new Set([].concat(...os.map(o=>o.actions||[])))].map(accActLabel);
+      const etat=os.map(o=>[ACC_KEYS.filter(k=>o[k]).map(k=>L(ACC_ETAT[k].fr,ACC_ETAT[k].es)+' : '+accOptLabel(k,o[k])).join(' · '), o.remarque].filter(Boolean).join(' — ')+(o.remarque||ACC_KEYS.some(k=>o[k])?' ('+authorName(o)+')':'')).filter(x=>x.trim());
+      const tal=accTempAlerts(X,d);
+      return `<tr><td>A${j}</td><td>${esc(dayShort(fin,j))}</td><td${tal.some(x=>/palox/.test(x))?' class="al"':''}>${rng(d.tiMin,d.tiMax)}</td><td${tal.some(x=>/°C/.test(x)&&!/palox/.test(x))?' class="al"':''}>${rng(d.tMin,d.tMax)}</td><td${tal.some(x=>/ %/.test(x))?' class="al"':''}>${rng(d.hMin,d.hMax)}</td><td>${esc(acts.join(', '))}</td><td>${etat.map(esc).join('<br>')}</td><td class="al">${al.map(esc).join('<br>')}${os.filter(o=>o.raison).map(o=>'<br><span class="why"><b>'+esc(L('Raison : ','Causa: '))+'</b>'+esc(o.raison)+'</span>').join('')}</td></tr>`; }).join('')}</tbody></table></div>`:`<p class="small">${esc(L('Aucune saisie pour l\'instant.','Ningún registro por ahora.'))}</p>`}
+    ${thermoTableHTML({rs:accRels(ch,X), dayOf:r=>r.ajour, pre:'A', dateOf:j=>dayShort(fin,j), isOut:t=>accTOut(X,t.v), showPos:true, wrap:false, title:L('Détail par thermomètre (°C, min–max du jour ; le tableau ci-dessus donne la moyenne)','Detalle por termómetro (°C, mín–máx del día; la tabla de arriba da el promedio)')})}
+    ${rows.length?`<p class="small" style="margin:10px 0 4px"><b>${esc(L('Reprise par lot','Prendimiento por lote'))}</b></p><div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Réussite au triage','Éxito en la selección'))}</th><th>${esc(L('Plants regardés','Plantas revisadas'))}</th><th>${esc(L('Morts','Muertas'))}</th><th>${esc(L('Reprise','Prendimiento'))}</th><th>${esc(L('Contrôle','Control'))}</th></tr></thead><tbody>${rows.map(l=>{ const e=rep[l.lot]; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete||e.variete||'')}</td><td>${esc(l.pg||e.pg||'')}</td><td>${l.b?pct(bilanRate(l.b)):'—'}</td><td>${isPctReprise(e)?'—':esc(e.regardes)}</td><td>${isPctReprise(e)?'—':esc(e.morts)}</td><td><b>${pct(repriseRate(e))}</b></td><td>A${e.ajour}${e.remarque?' · '+esc(e.remarque):''}</td></tr>`; }).join('')}</tbody></table></div>`:''}
+    </div>`; }).join('')}
+  </section>`;
+}
+function accSummaryLines(ch){ const out=[];
+  accList(ch).forEach(X=>{ const fin=accCh(X); out.push('',L('Acclimatation','Aclimatación')+' · '+accName(ch,X)+((ch.lots||[]).length?' ('+accLotsText(ch,X)+')':'')+' · '+L('début ','inicio ')+dayLabel(fin,1));
+    for(let j=1;j<=accDur(X);j++){ if(!accDayFilled(ch,X,j)) continue; const d=accDayStat(ch,X,j); const os=accObsDay(ch,X,j);
+      const rg=(a,b)=>a===b?fmtN(a):fmtN(a)+'–'+fmtN(b);
+      out.push('A'+j+' · '+dayLabel(fin,j)+(d.n?(d.tiMin!=null?' · palox '+rg(d.tiMin,d.tiMax)+' °C':'')+(d.tMin!=null?' · '+L('air ','aire ')+rg(d.tMin,d.tMax)+' °C':'')+(d.hMin!=null?' · HR '+(d.hMin===d.hMax?fmtN(d.hMin):fmtN(d.hMin)+'–'+fmtN(d.hMax))+' %':''):''));
+      os.forEach(o=>{ const p=[...(o.actions||[]).map(accActLabel), ...ACC_KEYS.filter(k=>o[k]).map(k=>L(ACC_ETAT[k].fr,ACC_ETAT[k].es)+' : '+accOptLabel(k,o[k]))]; if(p.length) out.push('  '+p.join(' · ')+' ('+authorName(o)+')'); if(o.remarque) out.push('  '+o.remarque); if(o.raison) out.push('  '+L('Raison du problème : ','Causa del problema: ')+o.raison); });
+      const al=accDayAlerts(ch,X,j); if(al.length) out.push('  ⚠ '+al.join(' ; ')); }
+    Object.values(repriseByLot(ch,X)).forEach(e=>out.push('  '+L('Lot ','Lote ')+e.lot+' · '+L('reprise ','prendimiento ')+pct(repriseRate(e))+' ('+(isPctReprise(e)?L('saisi en %, A','ingresado en %, A'):e.morts+'/'+e.regardes+L(' morts, A',' muertas, A'))+e.ajour+')')); });
+  return out; }
 
 /* ----- Onglet Infos (chauffe, lots, protocole, soudure) ----- */
 function tabInfos(ch, body){
@@ -1915,7 +2273,7 @@ function tabBilan(ch, body){
   const groups=key=>{ const m={}; lots.forEach(l=>{ const k=l[key]||'?'; (m[k]=m[k]||[]).push(l); }); return Object.entries(m).map(([k,ls])=>({k, a:aggRate(ls)})).filter(x=>x.a.rate!=null).sort((a,b)=>b.a.rate-a.a.rate); };
   const grpHTML=(title,key)=>{ const g=groups(key); if(g.length<1) return ''; return `<div class="field"><span class="lab">${esc(title)}</span><div class="ratelist">${g.map(x=>`<div class="raterow"><span class="rk">${esc(x.k)}</span>${rateBar(x.a.rate)}<span class="rv mono">${pct(x.a.rate)}</span></div>`).join('')}</div></div>`; };
   body.innerHTML=`
-    <p class="note">${esc(L("À la sortie de chauffe, trie un échantillon de chaque lot (ou le lot entier) et note combien de plants sont bons. L'app calcule la réussite de chaque lot et la compare d'une saison à l'autre (Accueil → Comparer les saisons).","Al salir de la calefacción, revisa una muestra de cada lote (o el lote entero) y anota cuántas plantas están buenas. La app calcula el éxito de cada lote y lo compara de una temporada a otra (Inicio → Comparar temporadas)."))}</p>
+    <p class="note">${esc(L("À la sortie de chauffe, trie un échantillon de chaque lot (ou le lot entier) et note combien de plants sont bons (1er et 2e choix), à remettre en chauffe ou en rebut. Ensuite, suis l'acclimatation dans l'onglet Acclim. L'app calcule la réussite de chaque lot et la compare d'une saison à l'autre (Accueil → Comparer les saisons).","Al salir de la calefacción, revisa una muestra de cada lote (o el lote entero) y anota cuántas plantas están buenas (1ª y 2ª), a recalentar o descartadas. Después, sigue la aclimatación en la pestaña Aclim. La app calcula el éxito de cada lote y lo compara de una temporada a otra (Inicio → Comparar temporadas)."))}</p>
     <div class="card">
       <div class="hhead"><h3>${esc(L('Réussite de la chauffe','Éxito de la calefacción'))}</h3><span class="mono">${esc(plural(done,'lot','lots','lote','lotes'))} / ${lots.length}</span></div>
       <div class="bigrate">${pct(agg.rate)}</div>
@@ -1945,10 +2303,12 @@ function tabBilan(ch, body){
       const mode0 = isPctBilan(l.b) ? 'pct' : (l.b ? 'compte' : (S.bilanMode||'compte'));
       d.innerHTML=head+`<div class="field"><span class="lab">${esc(L('Comment saisir ?','¿Cómo ingresar?'))}</span><div class="seg" id="be-mode"><button type="button" data-v="compte" aria-pressed="${mode0==='compte'}">${esc(L('Compter les plants','Contar las plantas'))}</button><button type="button" data-v="pct" aria-pressed="${mode0==='pct'}">${esc(L('Pourcentage direct','Porcentaje directo'))}</button></div></div>
         <div id="be-pctbox"${mode0==='pct'?'':' hidden'} class="field"><label for="be-pct">${esc(L('Réussite (%)','Éxito (%)'))}</label><input id="be-pct" class="num" type="text" inputmode="decimal" value="${isPctBilan(b)?esc(fmtN(b.pct)):''}" placeholder="%"><span class="ex">${esc(L('Ex. : 92 ou 87,5. Pratique si le chef de culture te donne directement le pourcentage.','Ej.: 92 u 87,5. Útil si el jefe de cultivo te da directamente el porcentaje.'))}</span></div>
-        <div id="be-cntbox"${mode0==='pct'?' hidden':''} class="field"><div class="two"><div class="field"><label for="be-tries">${esc(L('Plants triés','Plantas revisadas'))}</label><input id="be-tries" class="num" type="text" inputmode="numeric" value="${b.tries!=null?b.tries:''}" placeholder="N°"></div><div class="field"><label for="be-bons">${esc(L('Plants bons','Plantas buenas'))}</label><input id="be-bons" class="num" type="text" inputmode="numeric" value="${b.bons!=null?b.bons:''}" placeholder="N°"></div></div>
-        <span class="ex">${esc(L("Ex. : 200 triés, 184 bons → 92 %. Un échantillon suffit.","Ej.: 200 revisadas, 184 buenas → 92 %. Basta con una muestra."))}</span>
+        <div id="be-cntbox"${mode0==='pct'?' hidden':''} class="field"><div class="two"><div class="field"><label for="be-tries">${esc(L('Plants triés','Plantas revisadas'))}</label><input id="be-tries" class="num" type="text" inputmode="numeric" value="${b.tries!=null?b.tries:''}" placeholder="N°"></div><div class="field"><label for="be-bons">${esc(L('Bons (1er choix)','Buenas (1ª)'))}</label><input id="be-bons" class="num" type="text" inputmode="numeric" value="${b.bons!=null?b.bons:''}" placeholder="N°"></div></div>
+        <div class="two"><div class="field"><label for="be-c2">${esc(L('2e choix','2ª selección'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="be-c2" class="num" type="text" inputmode="numeric" value="${b.c2?b.c2:''}" placeholder="N°"></div><div class="field"><label for="be-rech">${esc(L('À remettre en chauffe','A recalentar'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="be-rech" class="num" type="text" inputmode="numeric" value="${b.rech?b.rech:''}" placeholder="N°"></div></div>
+        <span class="ex">${esc(L("Ex. : 200 triés, 170 en 1er choix, 14 en 2e choix, 4 à remettre en chauffe → 92 % de réussite, 12 rebuts. Un échantillon suffit.","Ej.: 200 revisadas, 170 de 1ª, 14 de 2ª, 4 a recalentar → 92 % de éxito, 12 descartes. Basta con una muestra."))}</span>
         <div class="sumbox" id="be-calc"></div></div>
         <div class="field"><span class="lab">${esc(L('Cause principale des rebuts','Causa principal de los descartes'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></span><div class="seg" id="be-cause">${CAUSES.map(c=>`<button type="button" data-v="${esc(c)}" aria-pressed="${b.cause===c}">${esc(T(c))}</button>`).join('')}</div></div>
+        <div class="field"><label for="be-dtri">${esc(L('Date du tri','Fecha de la selección'))}</label><input id="be-dtri" type="date" value="${esc(b.dateTri||ch.sortie||new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10))}"></div>
         <div class="field"><label for="be-rem">${esc(L('Remarques','Observaciones'))}</label><input id="be-rem" type="text" value="${esc(b.remarque||'')}"></div>
         <div class="row"><button class="primary" type="button" id="be-ok">${esc(L('Enregistrer le bilan','Guardar el balance'))}</button><button class="ghost" type="button" id="be-x">${esc(L('Annuler','Cancelar'))}</button></div>
         ${l.b?`<button class="ghost danger" type="button" id="be-del">${esc(L('Supprimer ce bilan','Eliminar este balance'))}</button>`:''}
@@ -1956,23 +2316,24 @@ function tabBilan(ch, body){
       el.appendChild(d);
       let cause=b.cause||'';
       $('be-cause').querySelectorAll('button').forEach(x=>x.onclick=()=>{ cause=cause===x.dataset.v?'':x.dataset.v; $('be-cause').querySelectorAll('button').forEach(y=>y.setAttribute('aria-pressed',y.dataset.v===cause)); });
-      const calc=()=>{ const t=num($('be-tries').value), g=num($('be-bons').value); const c=$('be-calc');
-        c.innerHTML = t>0 && g!=null && g<=t ? `<b>${pct(g/t)}</b> · ${esc(plural(t-g,'rebut','rebuts','descarte','descartes'))}` : ''; };
-      $('be-tries').oninput=calc; $('be-bons').oninput=calc; calc();
+      const calc=()=>{ const t=num($('be-tries').value), g=num($('be-bons').value), c2=num($('be-c2').value)||0, rh=num($('be-rech').value)||0; const c=$('be-calc');
+        c.innerHTML = t>0 && g!=null && g+c2+rh<=t ? `<b>${pct((g+c2)/t)}</b> ${esc(L('de réussite','de éxito'))} · ${esc(plural(t-g-c2-rh,'rebut','rebuts','descarte','descartes'))}${rh?' · '+esc(fmtN(rh)+L(' à remettre en chauffe',' a recalentar')):''}` : ''; };
+      ['be-tries','be-bons','be-c2','be-rech'].forEach(id=>$(id).oninput=calc); calc();
       let mode=mode0;
       $('be-mode').querySelectorAll('button').forEach(x=>x.onclick=()=>{ mode=x.dataset.v; S.bilanMode=mode; $('be-mode').querySelectorAll('button').forEach(y=>y.setAttribute('aria-pressed',y===x)); $('be-pctbox').hidden=mode!=='pct'; $('be-cntbox').hidden=mode==='pct'; $('be-st').textContent=''; const f=$(mode==='pct'?'be-pct':'be-tries'); if(f) f.focus(); });
       $('be-x').onclick=()=>{ S.bilanEdit=null; renderChauffe(); };
       if($('be-del')){ let c=false; $('be-del').onclick=async()=>{ if(!c){ c=true; $('be-del').textContent=L('Toucher encore pour supprimer','Tocar otra vez para eliminar'); return; } await removeEntry(l.b); S.bilanEdit=null; toast(L('Bilan supprimé.','Balance eliminado.')); renderChauffe(); }; }
       $('be-ok').onclick=async()=>{ const t=num($('be-tries').value), g=num($('be-bons').value), stEl=$('be-st');
-        const base=()=>Object.assign({}, l.b||{id:'bilan:'+ch.id+':'+l.lot, type:'bilan', chauffeId:ch.id, lot:l.lot, creeLe:nowIso()}, {jour:ch.duree, variete:l.variete, pg:l.pg, cause, remarque:$('be-rem').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom});
+        const base=()=>Object.assign({}, l.b||{id:'bilan:'+ch.id+':'+l.lot, type:'bilan', chauffeId:ch.id, lot:l.lot, creeLe:nowIso()}, {jour:ch.duree, variete:l.variete, pg:l.pg, cause, dateTri:$('be-dtri').value||'', remarque:$('be-rem').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom});
         if(mode==='pct'){ const pv=num($('be-pct').value);
           if(pv==null||pv<0||pv>100){ stEl.textContent=L('Indique un pourcentage entre 0 et 100.','Indica un porcentaje entre 0 y 100.'); stEl.className='status err'; return; }
-          const ent=Object.assign(base(),{pct:Math.round(pv*10)/10, tries:null, bons:null}); delete ent.supprime; await saveEntry(ent); S.bilanEdit=null;
+          const ent=Object.assign(base(),{pct:Math.round(pv*10)/10, tries:null, bons:null, c2:null, rech:null}); delete ent.supprime; await saveEntry(ent); S.bilanEdit=null;
           toast(L('Bilan du lot ','Balance del lote ')+l.lot+L(' enregistré : ',' guardado: ')+pct(bilanRate(ent))+'.'); renderChauffe(); return; }
         if(!(t>0)){ stEl.textContent=L('Indique le nombre de plants triés.','Indica el número de plantas revisadas.'); stEl.className='status err'; return; }
         if(g==null||g<0){ stEl.textContent=L('Indique le nombre de plants bons.','Indica el número de plantas buenas.'); stEl.className='status err'; return; }
-        if(g>t){ stEl.textContent=L('Il ne peut pas y avoir plus de plants bons que de plants triés.','No puede haber más plantas buenas que revisadas.'); stEl.className='status err'; return; }
-        const ent=Object.assign(base(),{tries:Math.round(t), bons:Math.round(g), pct:null});
+        const c2=num($('be-c2').value)||0, rh=num($('be-rech').value)||0;
+        if(c2<0||rh<0||g+c2+rh>t){ stEl.textContent=L('1er choix + 2e choix + à remettre en chauffe ne peut pas dépasser le nombre de plants triés.','1ª + 2ª + a recalentar no puede superar el número de plantas revisadas.'); stEl.className='status err'; return; }
+        const ent=Object.assign(base(),{tries:Math.round(t), bons:Math.round(g), c2:Math.round(c2), rech:Math.round(rh), pct:null});
         delete ent.supprime; await saveEntry(ent); S.bilanEdit=null; toast(L('Bilan du lot ','Balance del lote ')+l.lot+L(' enregistré : ',' guardado: ')+pct(bilanRate(ent))+'.'); renderChauffe(); };
       return;
     }
@@ -2061,7 +2422,20 @@ const REG_CSS=`.paper{background:#fff;color:#1b1b1b;border:1px solid var(--line,
 .paper .fig{break-inside:avoid;page-break-inside:avoid}
 .paper svg{max-width:100%}
 .paper .scrollx{overflow-x:auto}
-.paper td .why{color:#222;display:inline-block;margin-top:3px}`;
+.paper td .why{color:#222;display:inline-block;margin-top:3px}
+.paper .accbloc{margin-top:10px}.paper .accbloc+.accbloc{border-top:1px solid #e3dcdd;padding-top:10px}.paper h4{margin:4px 0 6px;font-size:14px}`;
+function thermoCols(rs){ const cols=[]; rs.forEach(r=>(r.thermos||[]).forEach(t=>{ if(!cols.some(c=>c.id===t.id)) cols.push({id:t.id, nom:t.nom, pos:t.pos}); })); return cols.sort((a,b)=>(a.pos===b.pos?0:(a.pos==='in'?-1:1))); }
+/* Tableau min–max par thermomètre et par jour. o = {rs, dayOf, pre, dateOf, isOut, title, note, wrap} */
+function thermoTableHTML(o){
+  const rs=o.rs.filter(r=>r.thermos&&r.thermos.length); if(!rs.length) return '';
+  const cols=thermoCols(rs); const days=[...new Set(rs.map(o.dayOf))].sort((a,b)=>a-b);
+  const cell=(j,c)=>{ const v=rs.filter(r=>o.dayOf(r)===j).map(r=>(r.thermos.find(t=>t.id===c.id)||{}).v).filter(x=>x!=null); if(!v.length) return '<td>—</td>'; const mn=Math.min(...v), mx=Math.max(...v); const out=v.some(x=>o.isOut({pos:c.pos,v:x})); return `<td${out?' class="al"':''}>${mn===mx?fmtN(mn):fmtN(mn)+'–'+fmtN(mx)}</td>`; };
+  const tbl=`<div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Date','Fecha'))}</th>${cols.map(c=>`<th>${esc(c.nom)}${o.showPos?'<br><span style="font-weight:400;text-transform:none">'+esc(thPosLabel(c.pos))+'</span>':''}</th>`).join('')}</tr></thead><tbody>${days.map(j=>`<tr><td>${o.pre}${j}</td><td>${esc(o.dateOf(j))}</td>${cols.map(c=>cell(j,c)).join('')}</tr>`).join('')}</tbody></table></div>`;
+  return o.wrap?`<section><h3>${esc(o.title)}</h3><p class="small">${esc(o.note)}</p>${tbl}</section>`:`<p class="small" style="margin:10px 0 4px"><b>${esc(o.title)}</b></p>${tbl}`;
+}
+function thermoDetailHTML(ch){ return thermoTableHTML({rs:releves(ch.id), dayOf:r=>r.jour, pre:'J', dateOf:j=>dayShort(ch,j), isOut:t=>thermoOut(ch,t), showPos:true, wrap:true,
+  title:L('Détail par thermomètre (°C, min–max du jour)','Detalle por termómetro (°C, mín–máx del día)'),
+  note:L("Le tableau « Conditions jour par jour » utilise la moyenne des thermomètres du palox et de ceux de l'air.","La tabla « Condiciones día por día » usa el promedio de los termómetros del palox y de los del aire.")}); }
 function registreHTML(ch){
   const lots=lotsWithBilan(ch), ds=dayStats(ch), s=seuilsOf(ch), agg=aggRate(lots);
   const fin=ch.debut?dayDate(ch,ch.duree):null; const dfmt=d=>d?String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear():'—';
@@ -2081,6 +2455,7 @@ function registreHTML(ch){
       ${ch.sortie?`<dt>${esc(L('Sortie','Salida'))}</dt><dd>${esc(iso2(ch.sortie))}</dd>`:''}
       <dt>${esc(L('Lots','Lotes'))}</dt><dd>${(ch.lots||[]).length}${tq?' · '+esc(fmtN(tq))+' '+esc(L('plants','plantas')):''}${tp?' · '+esc(fmtN(tp))+' palox':''}</dd>
       <dt>${esc(L('Seuils','Umbrales'))}</dt><dd>${hasSeuils(ch)?esc(seuilsText(ch).replace(/^[^:]+:\s*/,'')):'—'}</dd>
+      ${(()=>{ const u=thermoCols(releves(ch.id)); return u.length?`<dt>${esc(L('Thermomètres','Termómetros'))}</dt><dd>${esc(u.map(t=>t.nom+' ('+thPosLabel(t.pos)+')').join(', '))}</dd>`:''; })()}
       <dt>${esc(L('Réussite','Éxito'))}</dt><dd>${agg.rate==null?'—':'<b>'+pct(agg.rate)+'</b>'+(agg.tries?' ('+esc(plural(agg.tries,'plant trié','plants triés','planta revisada','plantas revisadas'))+')':'')}</dd>
       ${ch.notes?`<dt>${esc(L('Notes','Notas'))}</dt><dd>${esc(ch.notes)}</dd>`:''}
     </dl></section>
@@ -2088,11 +2463,13 @@ function registreHTML(ch){
     ${releves(ch.id).length?`<section class="fig"><h3>${esc(L('Courbe des températures','Curva de temperaturas'))}</h3>${tempSVG(ch,true)}</section>`:''}
     ${humSVG(ch,true,S.hv)?`<section class="fig"><h3>${esc(L("Courbe de l'humidité relative",'Curva de la humedad relativa'))}</h3>${humSVG(ch,true,S.hv)}</section>`:''}
     ${o2SVG(ch,true,S.ov)?`<section class="fig"><h3>${esc(L("Courbe de l'oxygène (O₂)",'Curva del oxígeno (O₂)'))}</h3>${o2SVG(ch,true,S.ov)}</section>`:''}
-    ${lots.length?`<section><h3>${esc(L('1. Lots','1. Lotes'))}</h3>${lots.some(l=>bilanRate(l.b)!=null)?`<div class="fig" style="margin-bottom:10px"><b class="small">${esc(L('Réussite par lot (%)','Éxito por lote (%)'))}</b>${histoSVG(ch,true)}</div>`:''}<div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Plants','Plantas'))}</th><th>Palox</th><th>${esc(L('Triés','Revisadas'))}</th><th>${esc(L('Bons','Buenas'))}</th><th>${esc(L('Réussite','Éxito'))}</th><th>${esc(L('Cause rebuts','Causa descartes'))}</th></tr></thead><tbody>${lots.map(l=>{ const c=(ch.lots||[]).find(x=>String(x.lot)===l.lot)||{}; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete)}</td><td>${esc(l.pg)}</td><td>${l.qte!=null?esc(fmtN(l.qte)):''}</td><td>${c.palox!=null?esc(fmtN(c.palox)):''}</td><td>${l.b&&l.b.tries>0?l.b.tries:''}</td><td>${l.b&&l.b.tries>0?l.b.bons:''}</td><td>${l.b?pct(bilanRate(l.b)):''}</td><td>${l.b&&l.b.cause?esc(T(l.b.cause)):''}</td></tr>`; }).join('')}</tbody></table></div></section>`:''}
+    ${lots.length?`<section><h3>${esc(L('1. Lots et triage','1. Lotes y selección'))}</h3>${lots.some(l=>bilanRate(l.b)!=null)?`<div class="fig" style="margin-bottom:10px"><b class="small">${esc(L('Réussite par lot (%)','Éxito por lote (%)'))}</b>${histoSVG(ch,true)}</div>`:''}<div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Plants','Plantas'))}</th><th>Palox</th><th>${esc(L('Triés','Revisadas'))}</th><th>${esc(L('Bons','Buenas'))}</th>${lots.some(l=>l.b&&(l.b.c2||l.b.rech))?`<th>${esc(L('Dont 2e choix','De ellas 2ª'))}</th><th>${esc(L('À rechauffer','A recalentar'))}</th>`:''}<th>${esc(L('Réussite','Éxito'))}</th><th>${esc(L('Cause rebuts','Causa descartes'))}</th></tr></thead><tbody>${lots.map(l=>{ const c=(ch.lots||[]).find(x=>String(x.lot)===l.lot)||{}; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete)}</td><td>${esc(l.pg)}</td><td>${l.qte!=null?esc(fmtN(l.qte)):''}</td><td>${c.palox!=null?esc(fmtN(c.palox)):''}</td><td>${l.b&&l.b.tries>0?l.b.tries:''}</td><td>${l.b&&l.b.tries>0?bilanBons(l.b):''}</td>${lots.some(x=>x.b&&(x.b.c2||x.b.rech))?`<td>${l.b&&l.b.c2?l.b.c2:''}</td><td>${l.b&&l.b.rech?l.b.rech:''}</td>`:''}<td>${l.b?pct(bilanRate(l.b)):''}</td><td>${l.b&&l.b.cause?esc(T(l.b.cause)):''}</td></tr>`; }).join('')}</tbody></table></div></section>`:''}
     <section><h3>${esc(L('2. Conditions jour par jour','2. Condiciones día por día'))}</h3><div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Date','Fecha'))}</th><th>${esc(L('T° pièce (°C)','T° sala (°C)'))}</th><th>${esc(L('T° palox min–max (°C)','T° palox mín–máx (°C)'))}</th><th>${esc(L('Moy. (°C)','Prom. (°C)'))}</th><th>${esc(L('HR pièce (%)','HR sala (%)'))}</th><th>${esc(L('HR palox (%)','HR palox (%)'))}</th><th>${esc(L('O₂ min. (%)','O₂ mín. (%)'))}</th><th>${esc(L('Mesures','Mediciones'))}</th><th>${esc(L('Alertes','Alertas'))}</th></tr></thead><tbody>${ds.map(d=>{ const a=dayTempAlerts(ch,d).concat(...obsByDay(d.j).map(alertsOf)); return `<tr><td>J${d.j}</td><td>${esc(dayShort(ch,d.j))}</td><td>${rng(d.extMin,d.extMax)}</td><td${d.cold||d.hot?' class="al"':''}>${rng(d.inMin,d.inMax)}</td><td>${d.inMean!=null?fmtN(r1(d.inMean)):'—'}</td><td>${rng(d.humExtMin,d.humExtMax)}</td><td>${rng(d.humInMin,d.humInMax)}</td><td${d.o2low?' class="al"':''}>${d.o2Min!=null?fmtN(d.o2Min):'—'}</td><td>${d.n?d.n+(d.nCap?' ('+esc(L('dont ','de ellas '))+d.nCap+' '+esc(L('capteur','sensor'))+')':''):'—'}</td><td class="al">${a.map(esc).join('<br>')}${obsByDay(d.j).filter(o=>o.raison).map(o=>'<br><span class="why"><b>'+esc(L('Raison : ','Causa: '))+'</b>'+esc(o.raison)+'</span>').join('')}</td></tr>`; }).join('')}</tbody></table></div></section>
+    ${thermoDetailHTML(ch)}
     <section><h3>${esc(L('3. Traitements phytosanitaires','3. Tratamientos fitosanitarios'))}</h3>${phytoTableHTML(ch,true)||'<p class="small">'+esc(L('Aucun traitement enregistré.','Ningún tratamiento registrado.'))+'</p>'}</section>
     <section><h3>${esc(L('4. Observations et actions','4. Observaciones y acciones'))}</h3>${ds.map(d=>{ const os=obsByDay(d.j); if(!os.length) return ''; return `<div class="day"><b>J${d.j}${ch.debut?' · '+esc(dayLabel(ch,d.j)):''}</b><ul>${os.map(o=>`<li>${OBS_KEYS.filter(k=>o[k]).map(k=>esc(T(OPTS[k].label)+L(' : ',': ')+T(o[k]))).join(' · ')}${o.remarque?'<br>'+esc(o.remarque):''}${o.raison?'<br><b>'+esc(L('Raison du problème : ','Causa del problema: '))+'</b>'+esc(o.raison):''} <span class="small">— ${esc(authorName(o))}</span></li>`).join('')}</ul></div>`; }).join('')||'<p class="small">—</p>'}</section>
     ${ctrl.length?`<section><h3>${esc(L('5. Contrôles par lot','5. Controles por lote'))}</h3><div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Plants regardés','Plantas revisadas'))}</th><th>${esc(L('Constat','Observación'))}</th><th>${esc(L('Par','Por'))}</th></tr></thead><tbody>${ctrl.map(r=>`<tr><td>J${r.jour}</td><td>${esc(r.lot)}${r.variete||r.pg?' · '+esc([r.variete,r.pg].filter(Boolean).join('/')):''}</td><td>${r.nb!=null?esc(r.nb):''}</td><td>${LOT_KEYS.filter(k=>r[k]).map(k=>esc(T(OPTS[k].label)+L(' : ',': ')+T(r[k]))).join(' · ')}${r.remarque?'<br>'+esc(r.remarque):''}</td><td>${esc(authorName(r))}</td></tr>`).join('')}</tbody></table></div></section>`:''}
+    ${accRegistreHTML(ch, ctrl.length?6:5)}
     <section><h3>${esc(L('Intervenants','Participantes'))}</h3><p>${Object.entries(authors).map(([n,k])=>esc(n)+' ('+esc(plural(k,'note','notes','nota','notas'))+')').join(' · ')||'—'}</p></section>
     <div class="visa"><div>${esc(L('Visa du responsable','Visto bueno del responsable'))}</div><div>${esc(L('Date','Fecha'))}</div></div>
     <p class="small">${esc(L('Document généré par ','Documento generado por ')+APP_NAME+' '+appVer()+L(' à partir des notes saisies sur l\'appareil.',' a partir de las notas ingresadas en el dispositivo.'))}</p>`;
@@ -2124,7 +2501,7 @@ function summary(ch){
   const out=[ch.nom+' — '+ch.duree+' jours, fin prévue J'+ch.finDe+'–J'+ch.finA+(ch.debut?' (début '+dayLabel(ch,1)+')':''),''];
   for(let j=1;j<=ch.duree;j++){ if(!dayFilled(ch.id,j)) continue; const ents=dayEntries(ch.id,j);
     out.push('J'+j+(ch.debut?' · '+dayLabel(ch,j):''));
-    ents.filter(e=>e.type==='releve'&&e.source!=='capteur').sort((a,b)=>(a.heure||'').localeCompare(b.heure||'')).forEach(r=>out.push('  T° '+(r.heure?fmtH(r.heure):L('heure ?','hora ?'))+' · '+L('pièce ','sala ')+(r.tExt!=null?fmtN(r.tExt)+' °C':'—')+' · palox '+(r.tInt!=null?fmtN(r.tInt)+' °C':'—')+(humText(r)?' · '+humText(r):'')+' ('+authorName(r)+')'));
+    ents.filter(e=>e.type==='releve'&&e.source!=='capteur').sort((a,b)=>(a.heure||'').localeCompare(b.heure||'')).forEach(r=>out.push('  T° '+(r.heure?fmtH(r.heure):L('heure ?','hora ?'))+' · '+L('pièce ','sala ')+(r.tExt!=null?fmtN(r.tExt)+' °C':'—')+' · palox '+(r.tInt!=null?fmtN(r.tInt)+' °C':'—')+(humText(r)?' · '+humText(r):'')+' ('+authorName(r)+')'+(r.thermos&&r.thermos.length?'\n    '+thermoText(r):'')));
     const cps=ents.filter(e=>e.type==='releve'&&e.source==='capteur'); if(cps.length){ const ti=cps.map(r=>r.tInt).filter(v=>v!=null), te=cps.map(r=>r.tExt).filter(v=>v!=null), rg=a=>fmtN(Math.min(...a))+'–'+fmtN(Math.max(...a)); out.push('  '+L('Capteur','Sensor')+' : '+plural(cps.length,'mesure','mesures','medición','mediciones')+(te.length?' · '+L('pièce ','sala ')+rg(te)+' °C':'')+(ti.length?' · palox '+rg(ti)+' °C':'')+(rngTxt(cps.map(hOut),' %')?' · '+L('HR pièce ','HR sala ')+rngTxt(cps.map(hOut),' %'):'')+(rngTxt(cps.map(hIn),' %')?' · HR palox '+rngTxt(cps.map(hIn),' %'):'')); }
     const tal=dayTempAlerts(ch, dayStats(ch)[j-1]); if(tal.length) out.push('  ⚠ '+tal.join(' ; '));
     ents.filter(e=>e.type==='phyto').forEach(e=>out.push('  🧪 '+L('Traitement','Tratamiento')+' '+(e.heure?fmtH(e.heure)+' ':'')+': '+phytoLine(e)+' ('+authorName(e)+')'));
@@ -2133,15 +2510,16 @@ function summary(ch){
   }
   const lots=entriesOf(ch.id,'lot').sort((a,b)=>a.jour-b.jour);
   if(lots.length){ out.push('','Contrôles par lot'); lots.forEach(r=>out.push('  J'+r.jour+' · Lot '+r.lot+((r.variete||r.pg)?' ('+[r.variete,r.pg].filter(Boolean).join('/')+')':'')+(r.nb?' · '+r.nb+' plants':'')+LOT_KEYS.filter(k=>r[k]).map(k=>' · '+OPTS[k].label+' : '+r[k]).join('')+(r.remarque?' · '+r.remarque:'')+' ('+authorName(r)+')')); }
-  const bl=lotsWithBilan(ch).filter(l=>l.b); if(bl.length){ const ag=aggRate(lotsWithBilan(ch)); out.push('',L('Bilan de fin de chauffe','Balance de fin de calefacción')+' : '+pct(ag.rate)); bl.forEach(l=>out.push('  '+L('Lot ','Lote ')+l.lot+((l.variete||l.pg)?' ('+[l.variete,l.pg].filter(Boolean).join('/')+')':'')+' · '+pct(bilanRate(l.b))+(isPctBilan(l.b)?'':' ('+l.b.bons+'/'+l.b.tries+')')+(l.b.cause?' · '+T(l.b.cause):''))); }
+  const bl=lotsWithBilan(ch).filter(l=>l.b); if(bl.length){ const ag=aggRate(lotsWithBilan(ch)); out.push('',L('Bilan de fin de chauffe','Balance de fin de calefacción')+' : '+pct(ag.rate)); bl.forEach(l=>out.push('  '+L('Lot ','Lote ')+l.lot+((l.variete||l.pg)?' ('+[l.variete,l.pg].filter(Boolean).join('/')+')':'')+' · '+pct(bilanRate(l.b))+(isPctBilan(l.b)?'':' ('+bilanBons(l.b)+'/'+l.b.tries+')')+(l.b.cause?' · '+T(l.b.cause):''))); }
+  out.push(...accSummaryLines(ch));
   return out.join('\n');
 }
 function csv(ch){
   const c=v=>{ const s=v==null?'':String(v); return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
   const dec=v=>v==null||v===''?'':String(v).replace('.',',');
-  const rows=[['Jour','Date','Type','Heure','T° pièce (°C)','T° dans palox (°C)','HR pièce (%)','HR palox (%)','O₂ pièce (%)','O₂ palox (%)','Source','Lot','Variété','Porte-greffe','Nb plants','Plants triés','Plants bons','Réussite (%)','Cause rebuts','Produit','Matière active','Dose','Unité','Méthode','Cible','Bouillie (L)',...OBS_KEYS.map(k=>OPTS[k].label),'Remarques','Raison du problème','Auteur'].map(T)];
-  const ents=entriesOf(ch.id).filter(e=>e.type!=='photo').sort((a,b)=>a.jour-b.jour||(a.heure||'').localeCompare(b.heure||''));
-  ents.forEach(e=>rows.push(['J'+e.jour, dayShort(ch,e.jour), T({releve:'Relevé',obs:'Observation',lot:'Contrôle lot',bilan:'Bilan',phyto:'Traitement'}[e.type]||e.type), e.heure||'', dec(e.tExt), dec(e.tInt), dec(e.type==='releve'?hOut(e):null), dec(e.type==='releve'?hIn(e):null), dec(e.o2Ext), dec(e.o2Int), e.source==='capteur'?L('capteur','sensor')+' '+(e.capteur||''):'', e.lot||'', e.variete||'', e.pg||'', e.nb??'', e.tries??'', e.bons??'', e.type==='bilan'&&bilanRate(e)!=null?dec(Math.round(bilanRate(e)*1000)/10):'', T(e.cause||''), e.produit||'', e.matiere||'', dec(e.dose), e.unite||'', T(e.methode||''), e.cible||'', dec(e.volume), ...OBS_KEYS.map(k=>T(e[k]||'')), e.remarque||'', e.raison||'', e.source==='capteur'?'':authorName(e)]));
+  const rows=[['Jour','Date','Type','Heure','T° pièce (°C)','T° dans palox (°C)','HR pièce (%)','HR palox (%)','O₂ pièce (%)','O₂ palox (%)','Source','Lot','Variété','Porte-greffe','Nb plants','Plants triés','Plants bons','Réussite (%)','Cause rebuts','Produit','Matière active','Dose','Unité','Méthode','Cible','Bouillie (L)',...OBS_KEYS.map(k=>OPTS[k].label),'Remarques','Raison du problème','Thermomètres','2e choix','À remettre en chauffe','Date du tri','T° acclim. air (°C)','T° acclim. palox (°C)','HR acclim. (%)','Actions','Pousses','Feuilles','Plants regardés','Plants morts','Auteur'].map(T)];
+  const dk=e=>e.ajour!=null?1000+e.ajour:(e.jour||0); const ents=entriesOf(ch.id).filter(e=>e.type!=='photo').sort((a,b)=>dk(a)-dk(b)||(a.heure||'').localeCompare(b.heure||''));
+  ents.forEach(e=>rows.push([e.ajour!=null?'A'+e.ajour:'J'+e.jour, e.ajour!=null?(accById(ch,e.accId)?dayShort(accCh(accById(ch,e.accId)),e.ajour):''):dayShort(ch,e.jour), e.ajour!=null?({accrel:L('Acclim. relevé','Aclim. lectura'),accobs:L('Acclim. observation','Aclim. observación'),reprise:L('Contrôle de reprise','Control de prendimiento')}[e.type]||e.type)+(accById(ch,e.accId)?' · '+accName(ch,accById(ch,e.accId)):''):T({releve:'Relevé',obs:'Observation',lot:'Contrôle lot',bilan:'Triage',phyto:'Traitement'}[e.type]||e.type), e.heure||'', dec(e.tExt), dec(e.tInt), dec(e.type==='releve'?hOut(e):null), dec(e.type==='releve'?hIn(e):null), dec(e.o2Ext), dec(e.o2Int), e.source==='capteur'?L('capteur','sensor')+' '+(e.capteur||''):'', e.lot||'', e.variete||'', e.pg||'', e.nb??'', e.tries??'', e.bons??'', e.type==='bilan'&&bilanRate(e)!=null?dec(Math.round(bilanRate(e)*1000)/10):(e.type==='reprise'&&repriseRate(e)!=null?dec(Math.round(repriseRate(e)*1000)/10):''), T(e.cause||''), e.produit||'', e.matiere||'', dec(e.dose), e.unite||'', T(e.methode||''), e.cible||'', dec(e.volume), ...OBS_KEYS.map(k=>T(e[k]||'')), e.remarque||'', e.raison||'', thermoText(e), e.c2||'', e.rech||'', e.dateTri||'', e.type==='accrel'?dec(e.t):'', e.type==='accrel'?dec(e.tIn):'', e.type==='accrel'?dec(e.hum):'', (e.actions||[]).map(accActLabel).join(', '), e.pousses?accOptLabel('pousses',e.pousses):'', e.feuilles?accOptLabel('feuilles',e.feuilles):'', e.type==='reprise'?e.regardes:'', e.type==='reprise'?e.morts:'', e.source==='capteur'?'':authorName(e)]));
   return rows.map(r=>r.map(c).join(';')).join('\r\n');
 }
 async function shareFile(file, st, okMsg){
@@ -2197,7 +2575,7 @@ async function importFile(e, st){
 })();
 /* L'app d'origine (même adresse github.io) peut effacer nos fichiers hors ligne quand elle se met à jour :
    on vérifie au démarrage et on les remet en cache si besoin. */
-async function ensureShell(){ try{ if(!('caches' in window) || !navigator.onLine) return; const V='chauffes-v2.0.0'; const c=await caches.open(V); const hit=await c.match(new URL('index.html',location.href).href,{ignoreSearch:true}); if(!hit) await c.addAll(['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-512-maskable.png','./apple-touch-icon.png']); }catch(e){} }
+async function ensureShell(){ try{ if(!('caches' in window) || !navigator.onLine) return; const V='chauffes-v'+APP_VERSION; const c=await caches.open(V); const hit=await c.match(new URL('index.html',location.href).href,{ignoreSearch:true}); if(!hit) await c.addAll(['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-512-maskable.png','./apple-touch-icon.png']); }catch(e){} }
 if(location.protocol!=='file:') setTimeout(ensureShell, 4000);
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   navigator.serviceWorker.register('sw.js').then(reg=>{
