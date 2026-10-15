@@ -52,6 +52,7 @@ nav.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;back
 nav.tabs button{font:600 13.5px var(--f-body);border:0;background:transparent;color:var(--muted);padding:9px 1px;border-radius:7px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:370px){nav.tabs button{font-size:11.5px}}
 table.mini{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}table.mini th,table.mini td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}table.mini th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}table.mini .small{color:var(--muted);font-size:12px}
+.thchips{display:flex;flex-wrap:wrap;gap:6px}.thchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;font:600 14px var(--f-body);cursor:pointer;min-height:38px}.thchip i{width:12px;height:12px;border-radius:50%;background:var(--c)}.thchip[aria-pressed="false"]{opacity:.45;text-decoration:line-through}.thchip[aria-pressed="true"]{border-color:var(--c)}.thquick{display:flex;gap:14px;flex-wrap:wrap}
 #c-body .tabpart{display:grid;gap:16px}h3.secttl{margin:18px 2px 0;font-size:18px}
 nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 section.panel{display:grid;gap:16px;padding-top:8px}
@@ -274,7 +275,7 @@ section.panel>*{min-width:0}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.8.0';
+const APP_VERSION = '2.9.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -1347,6 +1348,7 @@ function tabHist(ch, body){
   const cb=comboSVG(ch,false,{mode:'sep',show:CB_DEFAULT.show});
   body.innerHTML=`
     ${cb?`<div class="card" style="gap:10px"><h3 class="ctitle">${esc(L("Vue d'ensemble : température, humidité, oxygène","Resumen: temperatura, humedad, oxígeno"))}</h3><p class="note">${esc(L('Moyenne de chaque jour. Choisis les courbes à afficher, sépare-les ou superpose-les. Touche un jour pour voir les valeurs.','Promedio de cada día. Elige las curvas, sepáralas o superponlas. Toca un día para ver los valores.'))}</p>${comboControlsHTML()}<div id="cb-wrap"></div><div class="tip" id="cb-tip">${esc(L('Touche un jour sur le graphique.','Toca un día en el gráfico.'))}</div></div>`:''}
+    ${thChartCardHTML(chauffeThOpts(ch))}
     <div class="card" style="gap:10px">
       <h3 class="ctitle" id="g-title">Températures</h3>
       <p class="note">Chaque point est un relevé. Touche un point pour voir sa valeur.</p>
@@ -1592,6 +1594,7 @@ function tabAcclim(ch, body){
       ${(ch.lots||[]).length?`<div class="rem">${esc(accLotsText(ch,X))}</div>`:''}
       ${accSeuilsText(X)?`<div class="seuilsline">${esc(accSeuilsText(X))}</div>`:''}</div>`}
     ${accChartsHTML(ch,X,false)?`<div class="card" style="gap:8px"><h3 class="ctitle">${esc(L('Courbes','Curvas'))} · ${esc(accName(ch,X))}</h3><p class="note">${esc(L('Chaque point est un relevé ; en rouge, hors seuil. Les traits pointillés sont les seuils.','Cada punto es una lectura; en rojo, fuera de umbral. Las líneas punteadas son los umbrales.'))}</p>${accChartsHTML(ch,X,false)}</div>`:''}
+    ${thChartCardHTML(accThOpts(ch,X))}
     <div class="field"><span class="lab">${esc(L('Jour','Día'))}</span><div class="dates" id="a-dates"></div></div>
     <form class="card" id="a-form" autocomplete="off">
       <div class="hhead"><h3>A${A} · ${esc(dayLabel(fin,A))}</h3><span class="mono">${esc(accName(ch,X))}</span></div>
@@ -1780,6 +1783,7 @@ function accRegistreHTML(ch, num){
       const etat=os.map(o=>[ACC_KEYS.filter(k=>o[k]).map(k=>L(ACC_ETAT[k].fr,ACC_ETAT[k].es)+' : '+accOptLabel(k,o[k])).join(' · '), o.remarque].filter(Boolean).join(' — ')+(o.remarque||ACC_KEYS.some(k=>o[k])?' ('+authorName(o)+')':'')).filter(x=>x.trim());
       const tal=accTempAlerts(X,d);
       return `<tr><td>A${j}</td><td>${esc(dayShort(fin,j))}</td><td${tal.some(x=>/palox/.test(x))?' class="al"':''}>${rng(d.tiMin,d.tiMax)}</td><td${tal.some(x=>/°C/.test(x)&&!/palox/.test(x))?' class="al"':''}>${rng(d.tMin,d.tMax)}</td><td${tal.some(x=>/ %/.test(x))?' class="al"':''}>${rng(d.hMin,d.hMax)}</td><td>${esc(acts.join(', '))}</td><td>${etat.map(esc).join('<br>')}</td><td class="al">${al.map(esc).join('<br>')}${os.filter(o=>o.raison).map(o=>'<br><span class="why"><b>'+esc(L('Raison : ','Causa: '))+'</b>'+esc(o.raison)+'</span>').join('')}</td></tr>`; }).join('')}</tbody></table></div>`:`<p class="small">${esc(L('Aucune saisie pour l\'instant.','Ningún registro por ahora.'))}</p>`}
+    ${thChartPrintHTML(accThOpts(ch,X))}
     ${thermoTableHTML({rs:accRels(ch,X), dayOf:r=>r.ajour, pre:'A', dateOf:j=>dayShort(fin,j), isOut:t=>accTOut(X,t.v), showPos:true, wrap:false, title:L('Détail par thermomètre (°C, min–max du jour ; le tableau ci-dessus donne la moyenne)','Detalle por termómetro (°C, mín–máx del día; la tabla de arriba da el promedio)')})}
     ${rows.length?`<p class="small" style="margin:10px 0 4px"><b>${esc(L('Reprise par lot','Prendimiento por lote'))}</b></p><div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Réussite au triage','Éxito en la selección'))}</th><th>${esc(L('Plants regardés','Plantas revisadas'))}</th><th>${esc(L('Morts','Muertas'))}</th><th>${esc(L('Reprise','Prendimiento'))}</th><th>${esc(L('Contrôle','Control'))}</th></tr></thead><tbody>${rows.map(l=>{ const e=rep[l.lot]; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete||e.variete||'')}</td><td>${esc(l.pg||e.pg||'')}</td><td>${l.b?pct(bilanRate(l.b)):'—'}</td><td>${isPctReprise(e)?'—':esc(e.regardes)}</td><td>${isPctReprise(e)?'—':esc(e.morts)}</td><td><b>${pct(repriseRate(e))}</b></td><td>A${e.ajour}${e.remarque?' · '+esc(e.remarque):''}</td></tr>`; }).join('')}</tbody></table></div>`:''}
     </div>`; }).join('')}
@@ -2433,6 +2437,53 @@ function thermoTableHTML(o){
   const tbl=`<div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Date','Fecha'))}</th>${cols.map(c=>`<th>${esc(c.nom)}${o.showPos?'<br><span style="font-weight:400;text-transform:none">'+esc(thPosLabel(c.pos))+'</span>':''}</th>`).join('')}</tr></thead><tbody>${days.map(j=>`<tr><td>${o.pre}${j}</td><td>${esc(o.dateOf(j))}</td>${cols.map(c=>cell(j,c)).join('')}</tr>`).join('')}</tbody></table></div>`;
   return o.wrap?`<section><h3>${esc(o.title)}</h3><p class="small">${esc(o.note)}</p>${tbl}</section>`:`<p class="small" style="margin:10px 0 4px"><b>${esc(o.title)}</b></p>${tbl}`;
 }
+/* ----- Courbes par thermomètre (superposées ou séparées) ----- */
+const TH_COLORS=['#7a2e3e','#2f6fc0','#1f7a45','#c27c0e','#6b4fa3','#0f8a8a','#b5466b','#5b6a61','#a0522d','#3d5a80'];
+const TH_CHARTS={};
+function thSeries(rs,xOf){ const cols=thermoCols(rs.filter(r=>r.thermos&&r.thermos.length));
+  return cols.map((c,i)=>({id:c.id, nom:c.nom, pos:c.pos, col:TH_COLORS[i%TH_COLORS.length],
+    pts:[].concat(...rs.map(r=>{ const t=(r.thermos||[]).find(x=>x.id===c.id); return t&&t.v!=null?[{x:xOf(r), v:t.v, r}]:[]; })).sort((a,b)=>a.x-b.x)})); }
+function thSVG(series,o,print,small,scaleSeries){
+  const C=chartInk(print); const all=[].concat(...series.map(se=>se.pts.map(p=>p.v))); if(!all.length) return '';
+  const lines=(o.lines||[]).filter(x=>x[0]!=null); const vals=[].concat(...(scaleSeries||series).map(se=>se.pts.map(p=>p.v))).concat(lines.map(x=>x[0]));
+  let lo=Math.min(...vals), hi=Math.max(...vals); if(hi-lo<4){ lo-=2; hi+=2; }
+  const step=[1,2,5,10,20,25].find(s=>(hi-lo)/s<=(small?4:6))||50; lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step;
+  const D=o.D, W=640, H=small?150:220, ml=40, mr=40, mt=12, mb=26, pw=W-ml-mr, ph=H-mt-mb;
+  const X=t=>ml+t/D*pw, Y=v=>mt+(hi-v)/((hi-lo)||1)*ph; const mono='font-family="ui-monospace,Menlo,monospace"';
+  let g=`<rect x="0" y="0" width="${W}" height="${H}" fill="${print?C.bg:'none'}"></rect>`;
+  for(let v=lo;v<=hi+1e-9;v+=step) g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${C.grid}"></line><text x="${ml-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="${C.text}" ${mono}>${fmtN(v)}</text>`;
+  const st=Math.max(1,Math.ceil(D/10)); for(let j=1;j<=D;j+=st) g+=`<text x="${X(j-0.5)}" y="${H-7}" text-anchor="middle" font-size="11" fill="${C.text}" ${mono}>${o.pre}${j}</text>`;
+  lines.forEach(([v,lab])=>{ g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${C.bad}" stroke-width="1.2" stroke-dasharray="5 4"></line><text x="${ml+pw+4}" y="${Y(v)+4}" font-size="10" fill="${C.bad}" font-family="system-ui,sans-serif">${esc(lab)}</text>`; });
+  series.forEach(se=>{ const pts=se.pts; if(!pts.length) return;
+    if(pts.length>1) g+=`<polyline fill="none" stroke="${se.col}" stroke-width="1.8" stroke-linejoin="round" points="${pts.map(p=>X(p.x).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')}"></polyline>`;
+    pts.forEach(p=>{ const out=o.isOut({pos:se.pos, v:p.v}); g+=`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="${out?4.2:3.2}" fill="${se.col}" stroke="${out?C.bad:C.bg}" stroke-width="${out?2:1.2}"><title>${esc(se.nom+' · '+fmtN(p.v)+' °C · '+o.pre+Math.floor(p.x+1)+(p.r.heure?' '+fmtH(p.r.heure):''))}</title></circle>`; });
+    if(small){ const last=pts[pts.length-1]; g+=`<text x="${Math.min(X(last.x)+7,W-4)}" y="${Y(last.v)-6}" font-size="11" fill="${C.strong}" ${mono} text-anchor="${X(last.x)+40>W?'end':'start'}">${fmtN(last.v)} °C</text>`; } });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(L('Courbes par thermomètre','Curvas por termómetro'))}" style="display:block;width:100%;height:auto">${g}</svg>`; }
+const thLegend=(series,C)=>series.map(se=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="display:inline-block;width:14px;height:3px;background:${se.col}"></i>${esc(se.nom)} <small style="opacity:.75">(${esc(thPosLabel(se.pos))})</small></span>`).join('');
+/* o = {key, title, rs, xOf, D, pre, lines, isOut} */
+function thChartCardHTML(o){ const series=thSeries(o.rs,o.xOf); if(!series.length) return ''; TH_CHARTS[o.key]=o;
+  return `<div class="card" style="gap:10px" id="thc-${esc(o.key)}">${thChartInner(o.key)}</div>`; }
+function thChartInner(key){ const o=TH_CHARTS[key]; const series=thSeries(o.rs,o.xOf);
+  S.thView=S.thView||{}; const v=S.thView[key]||(S.thView[key]={mode:'sup', hide:[]});
+  const shown=series.filter(se=>!v.hide.includes(se.id));
+  const chips=series.map(se=>`<button type="button" class="thchip" data-thk="${esc(key)}" data-tid="${esc(se.id)}" aria-pressed="${!v.hide.includes(se.id)}" style="--c:${se.col}"><i></i>${esc(se.nom)}</button>`).join('');
+  const quick=`<button type="button" class="linkbtn" data-thk="${esc(key)}" data-q="all">${esc(L('Tous','Todos'))}</button>${series.some(se=>se.pos==='in')?`<button type="button" class="linkbtn" data-thk="${esc(key)}" data-q="in">${esc(L('Palox seulement','Solo palox'))}</button>`:''}${series.some(se=>se.pos==='ext')?`<button type="button" class="linkbtn" data-thk="${esc(key)}" data-q="ext">${esc(L('Air seulement','Solo aire'))}</button>`:''}`;
+  const body=!shown.length?`<p class="note">${esc(L('Choisis au moins un thermomètre.','Elige al menos un termómetro.'))}</p>`:(v.mode==='sup'?thSVG(shown,o,false,false):shown.map(se=>`<div><span class="lab" style="color:${se.col}">${esc(se.nom)} <small style="color:var(--muted);font-weight:500">(${esc(thPosLabel(se.pos))})</small></span>${thSVG([se],o,false,true,shown)}</div>`).join(''));
+  return `<h3 class="ctitle">${esc(o.title)}</h3>
+    <div class="seg" role="group"><button type="button" data-thk="${esc(key)}" data-m="sup" aria-pressed="${v.mode==='sup'}">${esc(L('Superposer','Superponer'))}</button><button type="button" data-thk="${esc(key)}" data-m="sep" aria-pressed="${v.mode==='sep'}">${esc(L('Séparer','Separar'))}</button></div>
+    <div class="thchips">${chips}</div><div class="thquick">${quick}</div>
+    ${body}
+    <p class="note">${esc(L("Touche un nom pour l'afficher ou le cacher. Point cerclé de rouge : hors seuil. Traits pointillés : seuils.","Toca un nombre para mostrarlo u ocultarlo. Punto con borde rojo: fuera de umbral. Líneas punteadas: umbrales."))}</p>`; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-thk]'); if(!b) return; const key=b.dataset.thk; const o=TH_CHARTS[key]; if(!o) return;
+  const v=S.thView[key]; const ids=thSeries(o.rs,o.xOf);
+  if(b.dataset.m) v.mode=b.dataset.m;
+  else if(b.dataset.tid){ const id=b.dataset.tid; v.hide=v.hide.includes(id)?v.hide.filter(x=>x!==id):v.hide.concat(id); }
+  else if(b.dataset.q){ v.hide=b.dataset.q==='all'?[]:ids.filter(se=>se.pos!==b.dataset.q).map(se=>se.id); }
+  const box=$('thc-'+key); if(box) box.innerHTML=thChartInner(key); });
+function thChartPrintHTML(o){ const series=thSeries(o.rs,o.xOf); if(!series.length) return '';
+  return `<div class="fig"><p class="small" style="margin:8px 0 2px"><b>${esc(o.title)}</b></p>${thSVG(series,o,true,false)}<div style="font-size:11.5px;color:#555;display:flex;flex-wrap:wrap;gap:4px 0">${thLegend(series)}</div></div>`; }
+const chauffeThOpts=ch=>{ const s=seuilsOf(ch); return {key:'ch-'+ch.id, title:L('Courbes par thermomètre · chauffe','Curvas por termómetro · calefacción'), rs:releves(ch.id), xOf:r=>r.jour-1+hourOf(r)/24, D:ch.duree, pre:'J', lines:[[s.inMax,L('max','máx')],[s.inMin,L('min','mín')]], isOut:t=>thermoOut(ch,t)}; };
+const accThOpts=(ch,X)=>({key:'acc-'+ch.id+'-'+X.id, title:L('Courbes par thermomètre · ','Curvas por termómetro · ')+accName(ch,X), rs:accRels(ch,X), xOf:r=>r.ajour-1+hourOf(r)/24, D:Math.max(accDur(X),...accRels(ch,X).map(r=>r.ajour)), pre:'A', lines:[[X.tMax,L('max','máx')],[X.tMin,L('min','mín')]], isOut:t=>accTOut(X,t.v)});
 function thermoDetailHTML(ch){ return thermoTableHTML({rs:releves(ch.id), dayOf:r=>r.jour, pre:'J', dateOf:j=>dayShort(ch,j), isOut:t=>thermoOut(ch,t), showPos:true, wrap:true,
   title:L('Détail par thermomètre (°C, min–max du jour)','Detalle por termómetro (°C, mín–máx del día)'),
   note:L("Le tableau « Conditions jour par jour » utilise la moyenne des thermomètres du palox et de ceux de l'air.","La tabla « Condiciones día por día » usa el promedio de los termómetros del palox y de los del aire.")}); }
@@ -2466,6 +2517,7 @@ function registreHTML(ch){
     ${lots.length?`<section><h3>${esc(L('1. Lots et triage','1. Lotes y selección'))}</h3>${lots.some(l=>bilanRate(l.b)!=null)?`<div class="fig" style="margin-bottom:10px"><b class="small">${esc(L('Réussite par lot (%)','Éxito por lote (%)'))}</b>${histoSVG(ch,true)}</div>`:''}<div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Plants','Plantas'))}</th><th>Palox</th><th>${esc(L('Triés','Revisadas'))}</th><th>${esc(L('Bons','Buenas'))}</th>${lots.some(l=>l.b&&(l.b.c2||l.b.rech))?`<th>${esc(L('Dont 2e choix','De ellas 2ª'))}</th><th>${esc(L('À rechauffer','A recalentar'))}</th>`:''}<th>${esc(L('Réussite','Éxito'))}</th><th>${esc(L('Cause rebuts','Causa descartes'))}</th></tr></thead><tbody>${lots.map(l=>{ const c=(ch.lots||[]).find(x=>String(x.lot)===l.lot)||{}; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete)}</td><td>${esc(l.pg)}</td><td>${l.qte!=null?esc(fmtN(l.qte)):''}</td><td>${c.palox!=null?esc(fmtN(c.palox)):''}</td><td>${l.b&&l.b.tries>0?l.b.tries:''}</td><td>${l.b&&l.b.tries>0?bilanBons(l.b):''}</td>${lots.some(x=>x.b&&(x.b.c2||x.b.rech))?`<td>${l.b&&l.b.c2?l.b.c2:''}</td><td>${l.b&&l.b.rech?l.b.rech:''}</td>`:''}<td>${l.b?pct(bilanRate(l.b)):''}</td><td>${l.b&&l.b.cause?esc(T(l.b.cause)):''}</td></tr>`; }).join('')}</tbody></table></div></section>`:''}
     <section><h3>${esc(L('2. Conditions jour par jour','2. Condiciones día por día'))}</h3><div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Date','Fecha'))}</th><th>${esc(L('T° pièce (°C)','T° sala (°C)'))}</th><th>${esc(L('T° palox min–max (°C)','T° palox mín–máx (°C)'))}</th><th>${esc(L('Moy. (°C)','Prom. (°C)'))}</th><th>${esc(L('HR pièce (%)','HR sala (%)'))}</th><th>${esc(L('HR palox (%)','HR palox (%)'))}</th><th>${esc(L('O₂ min. (%)','O₂ mín. (%)'))}</th><th>${esc(L('Mesures','Mediciones'))}</th><th>${esc(L('Alertes','Alertas'))}</th></tr></thead><tbody>${ds.map(d=>{ const a=dayTempAlerts(ch,d).concat(...obsByDay(d.j).map(alertsOf)); return `<tr><td>J${d.j}</td><td>${esc(dayShort(ch,d.j))}</td><td>${rng(d.extMin,d.extMax)}</td><td${d.cold||d.hot?' class="al"':''}>${rng(d.inMin,d.inMax)}</td><td>${d.inMean!=null?fmtN(r1(d.inMean)):'—'}</td><td>${rng(d.humExtMin,d.humExtMax)}</td><td>${rng(d.humInMin,d.humInMax)}</td><td${d.o2low?' class="al"':''}>${d.o2Min!=null?fmtN(d.o2Min):'—'}</td><td>${d.n?d.n+(d.nCap?' ('+esc(L('dont ','de ellas '))+d.nCap+' '+esc(L('capteur','sensor'))+')':''):'—'}</td><td class="al">${a.map(esc).join('<br>')}${obsByDay(d.j).filter(o=>o.raison).map(o=>'<br><span class="why"><b>'+esc(L('Raison : ','Causa: '))+'</b>'+esc(o.raison)+'</span>').join('')}</td></tr>`; }).join('')}</tbody></table></div></section>
     ${thermoDetailHTML(ch)}
+    ${thermoDetailHTML(ch)?'<section>'+thChartPrintHTML(chauffeThOpts(ch))+'</section>':''}
     <section><h3>${esc(L('3. Traitements phytosanitaires','3. Tratamientos fitosanitarios'))}</h3>${phytoTableHTML(ch,true)||'<p class="small">'+esc(L('Aucun traitement enregistré.','Ningún tratamiento registrado.'))+'</p>'}</section>
     <section><h3>${esc(L('4. Observations et actions','4. Observaciones y acciones'))}</h3>${ds.map(d=>{ const os=obsByDay(d.j); if(!os.length) return ''; return `<div class="day"><b>J${d.j}${ch.debut?' · '+esc(dayLabel(ch,d.j)):''}</b><ul>${os.map(o=>`<li>${OBS_KEYS.filter(k=>o[k]).map(k=>esc(T(OPTS[k].label)+L(' : ',': ')+T(o[k]))).join(' · ')}${o.remarque?'<br>'+esc(o.remarque):''}${o.raison?'<br><b>'+esc(L('Raison du problème : ','Causa del problema: '))+'</b>'+esc(o.raison):''} <span class="small">— ${esc(authorName(o))}</span></li>`).join('')}</ul></div>`; }).join('')||'<p class="small">—</p>'}</section>
     ${ctrl.length?`<section><h3>${esc(L('5. Contrôles par lot','5. Controles por lote'))}</h3><div class="scrollx"><table><thead><tr><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Plants regardés','Plantas revisadas'))}</th><th>${esc(L('Constat','Observación'))}</th><th>${esc(L('Par','Por'))}</th></tr></thead><tbody>${ctrl.map(r=>`<tr><td>J${r.jour}</td><td>${esc(r.lot)}${r.variete||r.pg?' · '+esc([r.variete,r.pg].filter(Boolean).join('/')):''}</td><td>${r.nb!=null?esc(r.nb):''}</td><td>${LOT_KEYS.filter(k=>r[k]).map(k=>esc(T(OPTS[k].label)+L(' : ',': ')+T(r[k]))).join(' · ')}${r.remarque?'<br>'+esc(r.remarque):''}</td><td>${esc(authorName(r))}</td></tr>`).join('')}</tbody></table></div></section>`:''}
