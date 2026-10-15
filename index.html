@@ -276,7 +276,7 @@ section.panel>*{min-width:0}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.11.0';
+const APP_VERSION = '2.12.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -289,7 +289,7 @@ const SEED_CHAUFFE1 = {"chauffe": {"id": "chauffe-1-vivero-richter-2026", "nom":
 /* ---------- Valeurs des observations ---------- */
 const OPTS = {
   gouttes:{label:'Gouttes', titre:'Gouttes sur la cire', opts:['Oui','Peu','Non','Ruissellement'], alert:['Non','Ruissellement']},
-  couverture:{label:'Couverture', titre:'Couverture humide', opts:['Bien humide','À réhumidifier','Sèche'], alert:['À réhumidifier','Sèche']},
+  couverture:{label:'Couverture', titre:'Couverture', opts:['Bien humide','À réhumidifier','Sèche','En séchage (fin de chauffe)','Retirée'], alert:['À réhumidifier','Sèche'], finOk:['À réhumidifier','Sèche']},
   racines:{label:'Racines', titre:'Racines', opts:['Aucune','Début','Développées'], alert:[]},
   cal:{label:'Cal', titre:'Cal au point de greffe', facultatif:true, opts:['Pas visible','Début','Tout autour',"D'un seul côté",'Brun ou mou'], alert:["D'un seul côté",'Brun ou mou']},
   bois:{label:'Bois', titre:'Bois', opts:['Humide','Sec','Détrempé'], alert:['Sec','Détrempé']},
@@ -372,7 +372,10 @@ async function saveEntries(list){ if(!list.length) return; const t=nowIso(); lis
 function myObs(cid, jour){ return entriesOf(cid,'obs').find(e=>e.jour===jour && isMine(e)); }
 function dayEntries(cid, jour){ return S.entrees.filter(e=>!e.supprime && e.chauffeId===cid && e.jour===jour); }
 function dayFilled(cid, jour){ return dayEntries(cid,jour).some(e=>e.type==='releve'||e.type==='photo'||e.type==='phyto'||(e.type==='obs'&&(OBS_KEYS.some(k=>e[k])||e.remarque))); }
-function alertsOf(r){ return OBS_KEYS.filter(k=>r[k] && OPTS[k].alert.includes(r[k])).map(k=>OPTS[k].label+' : '+r[k]); }
+/* En fin de chauffe (à partir du premier jour de fin prévue), la couverture doit sécher : « Sèche » ou « À réhumidifier » ne sont plus des alertes. */
+function inFinChauffe(ch,j){ return !!(ch && j!=null && ch.finDe && j>=ch.finDe); }
+function isAlertVal(k,v,ch,j){ const o=OPTS[k]; if(!o||!o.alert.includes(v)) return false; if(o.finOk&&o.finOk.includes(v)&&inFinChauffe(ch,j)) return false; return true; }
+function alertsOf(r){ const ch=r&&r.chauffeId?S.chauffes.find(c=>c.id===r.chauffeId):null; return OBS_KEYS.filter(k=>r[k] && isAlertVal(k,r[k],ch,r.jour)).map(k=>OPTS[k].label+' : '+r[k]); }
 function lastDay(ch){ let n=0; for(let j=1;j<=ch.duree;j++) if(dayFilled(ch.id,j)) n=j; return n; }
 function chauffeAlerts(ch){ return entriesOf(ch.id).filter(e=>(e.type==='obs'||e.type==='lot') && alertsOf(e).length).length + dayStats(ch).filter(d=>d.alert).length; }
 function releves(cid){ return entriesOf(cid,'releve').sort((a,b)=>a.jour-b.jour || (a.heure||'').localeCompare(b.heure||'')); }
@@ -751,7 +754,7 @@ const ES = {
   // Saisie
   'Relevés de température':'Lecturas de temperatura','Ajoute un relevé chaque fois que tu regardes le thermomètre.':'Agrega una lectura cada vez que mires el termómetro.','Aucun relevé pour ce jour.':'Ninguna lectura para este día.','Heure du relevé':'Hora de la lectura','Hors palox (°C)':'Fuera del palox (°C)','Dans palox (°C)':'Dentro del palox (°C)','Humidité (%)':'Humedad (%)',"Ex. : 14h30 · 26 dehors · 27,5 dedans · 90 %. Une seule valeur suffit ; l'humidité est facultative.":'Ej.: 14h30 · 26 afuera · 27,5 adentro · 90 %. Basta con un valor; la humedad es opcional.','+ Ajouter ce relevé':'+ Agregar esta lectura',
   'Gouttes sur la cire':'Gotas sobre la cera','Couverture humide':'Manta húmeda','Racines':'Raíces','Cal au point de greffe':'Callo en el punto de injerto','Bois':'Madera','Odeur de la base':'Olor de la base',
-  'Oui':'Sí','Peu':'Pocas','Non':'No','Ruissellement':'Escurrimiento','Bien humide':'Bien húmeda','À réhumidifier':'Por rehumedecer','Sèche':'Seca','Aucune':'Ninguna','Début':'Inicio','Développées':'Desarrolladas','Pas visible':'No visible','Tout autour':'Todo alrededor',"D'un seul côté":'De un solo lado','Brun ou mou':'Café o blando','Humide':'Húmeda','Sec':'Seca','Détrempé':'Empapada','Normale':'Normal','Anormale':'Anormal',
+  'Oui':'Sí','Peu':'Pocas','Non':'No','Ruissellement':'Escurrimiento','Bien humide':'Bien húmeda','À réhumidifier':'Por rehumedecer','Sèche':'Seca','En séchage (fin de chauffe)':'Secándose (fin de calefacción)','Retirée':'Retirada','Aucune':'Ninguna','Début':'Inicio','Développées':'Desarrolladas','Pas visible':'No visible','Tout autour':'Todo alrededor',"D'un seul côté":'De un solo lado','Brun ou mou':'Café o blando','Humide':'Húmeda','Sec':'Seca','Détrempé':'Empapada','Normale':'Normal','Anormale':'Anormal',
   'Gouttes':'Gotas','Couverture':'Manta','Cal':'Callo','Odeur':'Olor',
   'Action du jour / remarques':'Acción del día / observaciones',"Ce que tu as fait ou remarqué aujourd'hui":'Lo que hiciste o notaste hoy','Ex. : mise en eau des palox, couverture réhumidifiée.':'Ej.: riego de los palox, manta rehumedecida.','Enregistrer la journée':'Guardar el día','Journée enregistrée.':'Día guardado.','Relevé retiré.':'Lectura quitada.','Indique au moins une température.':'Indica al menos una temperatura.','Température illisible : tape seulement le nombre, par exemple 28 ou 28,5.':'Temperatura ilegible: escribe solo el número, por ejemplo 28 o 28,5.','Enregistrement impossible : stockage plein ou bloqué.':'No se pudo guardar: almacenamiento lleno o bloqueado.','Enregistrement impossible.':'No se pudo guardar.',
   'Ajout de la photo…':'Agregando la foto…','Photo ajoutée.':'Foto agregada.','Photo supprimée.':'Foto eliminada.',"Plus de place sur l'appareil pour cette photo.":'No queda espacio en el dispositivo para esta foto.',"Plus de place sur l'appareil.":'No queda espacio en el dispositivo.','Observations des collaborateurs':'Observaciones de los compañeros','fin de chauffe possible':'fin de calefacción posible','heure ?':'hora ?',
@@ -1185,7 +1188,7 @@ function renderChauffe(){
   ({jour:tabChauffe, hist:tabHist, lots:tabChauffe, bilan:tabBilan, acc:tabAcclim, infos:tabInfos}[S.tab]||tabChauffe)(ch, $('c-body'));
 }
 
-function segHTML(id,key,val){ return `<div class="seg" id="${id}">`+OPTS[key].opts.map(o=>`<button type="button" data-v="${esc(o)}" class="${OPTS[key].alert.includes(o)?'alert':''}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')+'</div>'; }
+function segHTML(id,key,val,ch,j){ return `<div class="seg" id="${id}">`+OPTS[key].opts.map(o=>`<button type="button" data-v="${esc(o)}" class="${isAlertVal(key,o,ch,j)?'alert':''}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')+'</div>'; }
 function bindSeg(id,key,state,onChange){ const el=$(id); el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; state[key]=state[key]===v?'':v; el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===state[key])); onChange&&onChange(); }); }
 
 /* ----- Thermomètres nommés (plusieurs par chauffe) ----- */
@@ -1237,7 +1240,7 @@ function tabChauffe(ch, body){
 }
 /* ----- Onglet Saisie ----- */
 function tabJour(ch, body){
-  const J=S.jour; const mine=myObs(ch.id,J); const st={}; OBS_KEYS.forEach(k=>st[k]=mine?mine[k]||'':'');
+  const J=S.jour; const mine=myObs(ch.id,J); const st={}; OBS_KEYS.forEach(k=>st[k]=mine?mine[k]||'':''); Object.defineProperty(st,'chauffeId',{value:ch.id,enumerable:false}); Object.defineProperty(st,'jour',{value:J,enumerable:false});
   const rels=releves(ch.id).filter(r=>r.jour===J);
   const others=entriesOf(ch.id,'obs').filter(e=>e.jour===J && !isMine(e));
   const phs=entriesOf(ch.id,'photo').filter(e=>e.jour===J);
@@ -1266,14 +1269,14 @@ function tabJour(ch, body){
         <span class="ex">${esc(L("Ex. : 14h30 · pièce 26 °C et 80 % · palox 27,5 °C et 95 %. Une seule valeur suffit. L'air normal contient 20,9 % d'oxygène.","Ej.: 14h30 · sala 26 °C y 80 % · palox 27,5 °C y 95 %. Basta con un valor. El aire normal contiene 20,9 % de oxígeno."))}</span>
         <button class="primary" id="j-addrel" type="button">+ Ajouter ce relevé</button>
       </div>
-      ${OBS_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('seg-'+k,k,st[k])}</div>`).join('')}
+      ${OBS_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('seg-'+k,k,st[k],ch,J)}${k==='couverture'?`<span class="ex">${esc(inFinChauffe(ch,J)?L('Fin de chauffe : la couverture doit sécher, « Sèche » n\'est plus une alerte.','Fin de calefacción: la manta debe secarse, « Seca » ya no es una alerta.'):L('À partir de J'+ch.finDe+' (fin de chauffe), la couverture doit sécher : « Sèche » ne sera plus une alerte.','A partir de J'+ch.finDe+' (fin de calefacción), la manta debe secarse: « Seca » ya no será una alerta.'))}</span>`:''}</div>`).join('')}
       <div class="field"><span class="lab">Photos</span><div class="photos" id="j-ph"></div><label class="ghost filebtn" for="j-phin">+ Ajouter une photo</label><input class="vh" id="j-phin" type="file" accept="image/*" multiple></div>
       <div class="field"><label for="j-rem">Action du jour / remarques</label><textarea id="j-rem" placeholder="Ce que tu as fait ou remarqué aujourd'hui">${esc(mine?mine.remarque||'':'')}</textarea><span class="ex">Ex. : mise en eau des palox, couverture réhumidifiée.</span></div>
       <div id="j-alert" class="alertbox" hidden></div>
       <div class="field" id="j-raisonf" hidden><label for="j-raison">${esc(L('Raison du problème','Causa del problema'))} <span class="hint">${esc(L('(apparaît dans le registre PDF)','(aparece en el registro PDF)'))}</span></label><textarea id="j-raison" placeholder="${esc(L("Pourquoi c'est arrivé et ce qui a été fait",'Por qué pasó y qué se hizo'))}">${esc(mine?mine.raison||'':'')}</textarea><span class="ex">${esc(L('Ex. : chauffage coupé pendant la nuit, relancé à 7h ; porte de la chambre restée ouverte.','Ej.: calefacción apagada durante la noche, reactivada a las 7h; puerta de la cámara quedó abierta.'))}</span></div>
       <button class="primary" type="submit">Enregistrer la journée</button>
       <div class="status" id="j-st" role="status"></div>
-      ${others.length?`<div class="others"><span class="lab">Observations des collaborateurs</span>${others.map(o=>`<div><div class="who">${esc(authorName(o))}</div><div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${OPTS[k].alert.includes(o[k])?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}${o.raison?`<div class="rem"><b>${esc(L('Raison du problème : ','Causa del problema: '))}</b>${esc(o.raison)}</div>`:''}</div>`).join('')}</div>`:''}
+      ${others.length?`<div class="others"><span class="lab">Observations des collaborateurs</span>${others.map(o=>`<div><div class="who">${esc(authorName(o))}</div><div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${isAlertVal(k,o[k],ch,o.jour)?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}${o.raison?`<div class="rem"><b>${esc(L('Raison du problème : ','Causa del problema: '))}</b>${esc(o.raison)}</div>`:''}</div>`).join('')}</div>`:''}
     </form>
     ${phytoCardHTML(ch,J)}
     ${sensorCardHTML(ch)}`;
@@ -1399,7 +1402,7 @@ function tabHist(ch, body){
       b.innerHTML=`<div class="hhead"><span class="d">${esc(head)}</span><span class="mono">${esc(t||'—')}</span></div>`+
         (tal.length?`<div class="chips">${tal.map(x=>`<span class="chip al">${esc(x)}</span>`).join('')}</div>`:'')+
         (ents.some(e=>e.type==='phyto')?`<div class="chips">${ents.filter(e=>e.type==='phyto').map(e=>`<span class="chip ph">🧪 ${esc(e.produit+(doseText(e)?' · '+doseText(e):''))}</span>`).join('')}</div>`:'')+
-        obs.map(o=>`${multi?`<div class="who">${esc(authorName(o))}</div>`:''}<div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${OPTS[k].alert.includes(o[k])?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}`).join('')+
+        obs.map(o=>`${multi?`<div class="who">${esc(authorName(o))}</div>`:''}<div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${isAlertVal(k,o[k],ch,o.jour)?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}`).join('')+
         (ph.length?`<div class="rem">${ph.length} photo${ph.length>1?'s':''}</div>`:'');
     }
     b.onclick=()=>{ S.jour=j; S.tab='jour'; renderChauffe(); window.scrollTo({top:0}); };
