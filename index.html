@@ -276,6 +276,21 @@ ol.steptl .row{margin-top:4px}
 .decal{font:600 14px var(--f-body);color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:5px 9px}
 .nextstep{margin-top:6px;font:600 14px var(--f-body);border-radius:8px;padding:6px 10px;background:var(--warn-soft);color:var(--warn)}
 .nextstep.late{background:var(--bad-soft);color:var(--bad)}
+.stepsdone{display:grid;gap:6px;margin-bottom:6px}
+.stepdone{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--ok-soft);color:var(--fg);border-radius:10px;padding:8px 12px;font-size:15px}
+.stepdone b{color:var(--ok)}
+details.stepsall{border:1px solid var(--ok);background:var(--ok-soft);border-radius:12px;padding:10px 14px}
+details.stepsall>summary{cursor:pointer;font:700 16px var(--f-body);color:var(--ok);display:flex;justify-content:space-between;gap:8px;list-style:none}
+details.stepsall>summary::-webkit-details-marker{display:none}
+details.stepsall[open]>summary{margin-bottom:8px}
+details.stepsall>summary .mono{white-space:nowrap}
+.dates button .sd{top:-4px}
+details.stepsall .stepdone{background:var(--surface)}
+.stepban{display:flex;gap:8px;align-items:center;border-radius:10px;padding:10px 12px;font:700 16px var(--f-body);background:var(--ok-soft);color:var(--ok);border:2px solid var(--ok)}
+.stepban.plan{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.dates button .sd{position:absolute;top:-7px;right:-5px;font-size:13px;font-style:normal}
+.dates button{position:relative}
+.chip.stp{background:var(--ok-soft);color:var(--ok);font-weight:700}
 </style>
 </head>
 <body>
@@ -296,7 +311,7 @@ ol.steptl .row{margin-top:4px}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.24.0';
+const APP_VERSION = '2.25.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -1280,6 +1295,7 @@ function tabJour(ch, body){
     <div class="field"><span class="lab">Jour</span><div class="dates" id="j-dates"></div></div>
     <form class="card" id="j-form" autocomplete="off">
       <div class="hhead"><h3>J${J}${ch.debut?' · '+esc(dayLabel(ch,J)):''}</h3>${J>=ch.finDe&&J<=ch.finA?'<span class="chip ok">fin de chauffe possible</span>':''}</div>
+      ${chStepsOnDay(ch,J).map(x=>`<div class="stepban">⭐ ${esc(x.label)} : ${esc(L('fait ce jour','hecho este día'))}${x.e?' ('+esc(authorName(x.e))+')':''}</div>`).join('')}${chStepsPlannedOnDay(ch,J).map(x=>`<div class="stepban plan">⭐ ${esc(L('Prévu ce jour : ','Previsto este día: ')+x.label)}</div>`).join('')}
       ${rappelDue(ch)!=null?`<div class="alertbox warnbox"><strong>${esc(L('Pas de relevé depuis ','Sin lectura desde hace ')+fmtAge(rappelDue(ch)))}</strong><span>${esc(L('Pense à relever la température.','Acuérdate de tomar la temperatura.'))}</span></div>`:''}
       ${hasSeuils(ch)?`<div class="seuilsline">${esc(seuilsText(ch))}</div>`:`<button class="linkbtn" type="button" id="j-setseuils">${esc(L('Définir des seuils d\'alerte de température','Definir umbrales de alerta de temperatura'))}</button>`}
       <div class="field">
@@ -1318,7 +1334,7 @@ function tabJour(ch, body){
   // jours
   const dEl=$('j-dates');
   for(let j=1;j<=ch.duree;j++){ const b=document.createElement('button'); b.type='button';
-    b.innerHTML='<small>J'+j+'</small>'+(ch.debut?esc(dayShort(ch,j)):j);
+    b.innerHTML='<small>J'+j+'</small>'+(ch.debut?esc(dayShort(ch,j)):j)+(chStepsOnDay(ch,j).length?'<i class="sd" title="'+esc(chStepsOnDay(ch,j).map(x=>x.label).join(', '))+'">⭐</i>':'');
     if(dayFilled(ch.id,j)) b.classList.add('done'); b.setAttribute('aria-pressed',j===J);
     b.onclick=()=>{ S.jour=j; dirty=false; renderChauffe(); }; dEl.appendChild(b); }
   const cur=dEl.querySelector('[aria-pressed="true"]'); if(cur) cur.scrollIntoView({inline:'center',block:'nearest'});
@@ -1438,6 +1454,7 @@ function tabHist(ch, body){
         obs.map(o=>`${multi?`<div class="who">${esc(authorName(o))}</div>`:''}<div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${isAlertVal(k,o[k],ch,o.jour)?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}`).join('')+
         (ph.length?`<div class="rem">${ph.length} photo${ph.length>1?'s':''}</div>`:'');
     }
+    { const sd=chStepsOnDay(ch,j); if(sd.length) b.insertAdjacentHTML('beforeend',`<div class="chips">${sd.map(x=>`<span class="chip stp">⭐ ${esc(x.label)}</span>`).join('')}</div>`); }
     b.onclick=()=>{ S.jour=j; S.tab='jour'; renderChauffe(); window.scrollTo({top:0}); };
     el.appendChild(b);
   }
@@ -1986,18 +2003,33 @@ function plStepStatus(x){ const t=todayIso();
 function plNextStep(ch){
   if(!plLots(ch).length&&ch.debut&&!ch.archive&&todayIso()>=ch.debut){ const n=stepsOf(ch,'chauffe').find(x=>!x.date); if(n) return n; }
   if(!plLots(ch).length&&!plStepEnts(ch).length) return null; return plSteps(ch).find(x=>!x.date)||null; }
+/* Jour de chauffe correspondant à une date, et l'inverse */
+const chDayOfIso=(ch,iso)=>{ if(!ch.debut||!iso) return null; const d0=new Date(ch.debut+'T12:00:00'), d=new Date(iso+'T12:00:00'); return Math.round((d-d0)/864e5)+1; };
+const isoOfDay=(ch,j)=>{ const d=dayDate(ch,j); return d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'):null; };
+const stepWhen=(ch,sc,iso)=>{ const j=sc==='chauffe'?chDayOfIso(ch,iso):null; return (j!=null&&j>=1?'J'+j+' · ':'')+isoFr(iso); };
+const chStepsOnDay=(ch,j)=>stepsOf(ch,'chauffe').filter(x=>x.date&&chDayOfIso(ch,x.date)===j);
+const chStepsPlannedOnDay=(ch,j)=>stepsOf(ch,'chauffe').filter(x=>!x.date&&x.prevu&&chDayOfIso(ch,x.prevu)===j);
+/* Date utilisée par « Marquer comme fait » : le jour affiché dans l'onglet Chauffe, sinon aujourd'hui */
+const stepMarkIso=(ch,sc)=>sc==='chauffe'&&ch.debut&&S.jour?(isoOfDay(ch,S.jour)||todayIso()):todayIso();
 function stepsCardHTML(ch,sc){ const st=stepsOf(ch,sc); const ed=S.stepEd&&S.stepEd.chId===ch.id&&S.stepEd.sc===sc?S.stepEd:null;
+  const mk=stepMarkIso(ch,sc); const mkLab=mk===todayIso()?L("aujourd'hui","hoy"):stepWhen(ch,sc,mk);
+  const done=st.filter(x=>x.date&&!(ed&&ed.key===x.key)), todo=st.filter(x=>!x.date||(ed&&ed.key===x.key));
+  const doneRows=done.map(x=>`<div class="stepdone"><span>✅ <b>${esc(x.label)}</b> · ${esc(x.auto&&x.date0&&x.date0!==x.date?isoFr(x.date0)+' → '+isoFr(x.date):stepWhen(ch,sc,x.date))}${(x.dec||[]).filter(d=>d.de).length?' · <span class="hint">'+esc(L('décalé','postergado'))+'</span>':''}</span>${x.auto?'':`<button class="linkbtn" type="button" data-sed="${esc(x.key)}">${esc(L('Modifier','Modificar'))}</button>`}</div>`).join('');
+  const title=sc==='chauffe'?L('Étapes clés de la chauffe','Etapas clave de la calefacción'):L('Étapes clés','Etapas clave');
+  const addBtn=ed&&ed.key==='+new'?stepFormHTML({key:'+new', custom:true, label:''}):`<button class="linkbtn" type="button" id="st-new">${esc(L('+ Ajouter une étape clé','+ Agregar una etapa clave'))}</button>`;
+  if(st.length&&!todo.length&&!(ed&&ed.key==='+new')) return `<details class="stepsall" id="st-card"${S.stepsOpen?' open':''}><summary>⭐ ${esc(title)} : ${esc(L('tout est fait','todo hecho'))} ✅ <span class="mono">${st.length} / ${st.length}</span></summary><div class="stepsdone">${doneRows}</div>${addBtn}</details>`;
   return `<div class="card stepscard" id="st-card">
-    <div class="hhead"><h3>⭐ ${esc(sc==='chauffe'?L('Étapes clés de la chauffe','Etapas clave de la calefacción'):L('Étapes clés','Etapas clave'))}</h3><span class="mono">${st.filter(x=>x.date).length} / ${st.length}</span></div>
-    ${st.length?`<ol class="steptl">${st.map((x,i)=>{ const s=plStepStatus(x); const editing=ed&&ed.key===x.key;
+    <div class="hhead"><h3>⭐ ${esc(title)}</h3><span class="mono">${st.filter(x=>x.date).length} / ${st.length}</span></div>
+    ${doneRows?`<div class="stepsdone">${doneRows}</div>`:''}
+    ${todo.length?`<ol class="steptl">${todo.map((x)=>{ const i=st.indexOf(x); const s=plStepStatus(x); const editing=ed&&ed.key===x.key;
       return `<li class="${s.cls}"><span class="dot">${x.date?'✓':i+1}</span><div class="sbody"><div class="stitle">${esc(x.label)}</div><div class="sstat">${s.ic} ${esc(s.txt)}</div>${x.cible?`<div class="hint">${esc(x.cible)}</div>`:''}${x.remarque?`<div class="hint">${esc(x.remarque)}</div>`:''}${(x.dec||[]).filter(d=>d.de).map(d=>`<div class="decal">↪ ${esc(plDecText(d))}</div>`).join('')}${x.e&&x.date?`<div class="who">${esc(authorName(x.e))}</div>`:''}
-        ${editing?stepFormHTML(x):x.auto?`<button class="ghost" type="button" data-sgo="lots">${esc(x.date?L('Voir les lots','Ver los lotes'):L('Noter la plantation des lots','Anotar la plantación de los lotes'))}</button>`:`<div class="row">${x.date?'':`<button class="primary" type="button" data-sdone="${esc(x.key)}">✓ ${esc(L('Marquer comme fait','Marcar como hecho'))}</button>`}<button class="ghost" type="button" data-sed="${esc(x.key)}">${esc(x.date?L('Modifier','Modificar'):L('Prévoir / détails','Prever / detalles'))}</button></div>`}</div></li>`; }).join('')}</ol>`:''}
-    ${ed&&ed.key==='+new'?stepFormHTML({key:'+new', custom:true, label:''}):`<button class="ghost" type="button" id="st-new">${esc(L('+ Ajouter une étape clé','+ Agregar una etapa clave'))}</button>`}
+        ${editing?stepFormHTML(x):x.auto?`<button class="ghost" type="button" data-sgo="lots">${esc(x.date?L('Voir les lots','Ver los lotes'):L('Noter la plantation des lots','Anotar la plantación de los lotes'))}</button>`:`<div class="row">${x.date?'':`<button class="primary" type="button" data-sdone="${esc(x.key)}">✓ ${esc(L('Fait ','Hecho ')+mkLab)}</button>`}<button class="ghost" type="button" data-sed="${esc(x.key)}">${esc(x.date?L('Modifier','Modificar'):L('Prévoir / détails','Prever / detalles'))}</button></div>`}</div></li>`; }).join('')}</ol>`:''}
+    ${addBtn}
   </div>`; }
 function stepFormHTML(x){ return `<div class="card" style="gap:10px;background:var(--sunk);margin-top:8px" id="ps-form">
     ${x.custom?`<div class="field"><label for="ps-l">${esc(L("Nom de l'étape","Nombre de la etapa"))}</label><input id="ps-l" type="text" value="${esc(x.key==='+new'?'':x.label)}" placeholder="${esc(L('Ex. : mise en eau, contrôle de la soudure, binage','Ej.: puesta en agua, control de la soldadura, azadonado'))}"></div>`:''}
     <div class="two"><div class="field"><label for="ps-p">${esc(L('Prévu le','Previsto el'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="ps-p" type="date" value="${esc(x.prevu||'')}"></div>
-      <div class="field"><label for="ps-d">${esc(L('Fait le','Hecho el'))}</label><input id="ps-d" type="date" value="${esc(S.stepEd&&S.stepEd.doneNow?todayIso():(x.date||''))}"></div></div>
+      <div class="field"><label for="ps-d">${esc(L('Fait le','Hecho el'))}</label><input id="ps-d" type="date" value="${esc(S.stepEd&&S.stepEd.doneDate?S.stepEd.doneDate:(x.date||''))}"></div></div>
     ${x.soud?`<span class="ex">${esc(L("Pas de date fixe : ça dépend de la soudure. Mets une date prévue seulement si c'est programmé.","Sin fecha fija: depende de la soldadura. Pon una fecha prevista solo si está programado."))}</span>`:''}
     <div class="field" id="ps-wf" hidden><label for="ps-why">${esc(L('Raison du décalage','Causa del cambio de fecha'))}</label><input id="ps-why" type="text" placeholder="${esc(L('Ex. : soudure pas encore assez solide, pluie, manque de personnel','Ej.: soldadura aún no suficiente, lluvia, falta de personal'))}"><span class="ex" id="ps-wtxt"></span></div>
     <div class="field"><label for="ps-c">${esc(L('Lots / palox / parcelle','Lotes / palox / parcela'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="ps-c" type="text" list="pl-parcs" value="${esc(x.cible||'')}" placeholder="${esc(L('Ex. : tous les palox, lots 9 à 14','Ej.: todos los palox, lotes 9 a 14'))}"></div>
@@ -2005,7 +2037,7 @@ function stepFormHTML(x){ return `<div class="card" style="gap:10px;background:v
     <div class="row"><button class="primary" type="button" id="ps-ok">${esc(L('Enregistrer','Guardar'))}</button><button class="ghost" type="button" id="ps-x">${esc(L('Annuler','Cancelar'))}</button></div>
     ${x.custom&&x.e?`<button class="ghost danger" type="button" id="ps-del">${esc(L('Supprimer cette étape','Eliminar esta etapa'))}</button>`:''}
     <div class="status" id="ps-st"></div></div>`; }
-function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; const st=stepsOf(ch,sc); const type=STEP_SC[sc].type;
+function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; if(card.tagName==='DETAILS') card.addEventListener('toggle',()=>{ S.stepsOpen=card.open; }); const st=stepsOf(ch,sc); const type=STEP_SC[sc].type;
   const save=async(x,vals)=>{ const id=x.e?x.e.id:type+':'+ch.id+':'+(x.key==='+new'?'c-'+uid():x.key); const key=id.split(':').pop();
     const ent=Object.assign({}, x.e||{id, type, chauffeId:ch.id, key, creeLe:nowIso()}, vals, {auteurId:S.me.id, auteurNom:S.me.nom}); delete ent.supprime; await saveEntry(ent); };
   const openEd=(key,extra)=>{ S.stepEd=Object.assign({chId:ch.id, sc, key},extra||{}); renderChauffe(); setTimeout(()=>{ const w=$('ps-wf'); const f=w&&!w.hidden?$('ps-why'):$('ps-form'); if(f){ f.scrollIntoView({block:'center'}); if(f.tagName==='INPUT') f.focus(); } },40); };
@@ -2013,8 +2045,9 @@ function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; const st=s
   card.querySelectorAll('[data-sdone]').forEach(b=>b.onclick=async()=>{ const x=st.find(y=>y.key===b.dataset.sdone);
     const di=STEP_SC[sc].defs.findIndex(d=>d.key===x.key); const prev=di>0?st.find(y=>y.key===STEP_SC[sc].defs[di-1].key):null;
     if(prev&&!prev.date&&!b.dataset.ok){ b.dataset.ok='1'; b.textContent='⚠️ '+L('« '+prev.label+' » pas encore fait : toucher encore pour confirmer','« '+prev.label+' » todavía no hecho: tocar otra vez para confirmar'); return; }
-    if(x.prevu&&x.prevu!==todayIso()) return openEd(x.key,{doneNow:true});
-    await save(x,{date:todayIso()}); toast('✅ '+x.label+L(' : fait aujourd\'hui.',' : hecho hoy.')); renderChauffe(); });
+    const mk=stepMarkIso(ch,sc);
+    if(x.prevu&&x.prevu!==mk) return openEd(x.key,{doneDate:mk});
+    await save(x,{date:mk}); toast('✅ '+x.label+' : '+L('fait le ','hecho el ')+stepWhen(ch,sc,mk)+'.'); renderChauffe(); });
   card.querySelectorAll('[data-sed]').forEach(b=>b.onclick=()=>openEd(b.dataset.sed));
   if($('st-new')) $('st-new').onclick=()=>{ S.stepEd={chId:ch.id, sc, key:'+new'}; renderChauffe(); setTimeout(()=>{ const f=$('ps-l'); if(f){ f.scrollIntoView({block:'center'}); f.focus(); } },30); };
   if($('ps-form')){ const key=S.stepEd.key; const x=key==='+new'?{key:'+new', custom:true, dec:[]}:st.find(y=>y.key===key);
@@ -2034,10 +2067,10 @@ function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; const st=s
     if($('ps-del')){ let c=false; $('ps-del').onclick=async()=>{ if(!c){ c=true; $('ps-del').textContent=L('Toucher encore pour supprimer','Tocar otra vez para eliminar'); return; } await removeEntry(x.e); S.stepEd=null; toast(L('Étape supprimée.','Etapa eliminada.')); renderChauffe(); }; }
   } }
 function stepsTableHTML(ch,sc){ const st=stepsOf(ch,sc); if(!st.length) return '';
-  return `<div class="scrollx"><table><thead><tr><th>${esc(L('Étape','Etapa'))}</th><th>${esc(L('Prévu le','Previsto el'))}</th><th>${esc(L('Fait le','Hecho el'))}</th><th>${esc(L('Lots / parcelle','Lotes / parcela'))}</th><th>${esc(L('Décalages et raisons','Cambios de fecha y causas'))}</th><th>${esc(L('Remarques','Observaciones'))}</th><th>${esc(L('Par','Por'))}</th></tr></thead><tbody>${st.map(x=>`<tr><td><b>${esc(x.label)}</b></td><td>${esc(x.prevu?isoFr(x.prevu):(x.soud&&!x.date?L('selon la soudure','según la soldadura'):''))}</td><td${x.date?'':' class="al"'}>${esc(x.date?(x.auto&&x.date0&&x.date0!==x.date?isoFr(x.date0)+' – ':'')+isoFr(x.date):(x.partial?x.partial+L(' lots',' lotes'):L('pas encore','todavía no')))}</td><td>${esc(x.cible||'')}</td><td>${(x.dec||[]).filter(d=>d.de).map(d=>esc(plDecText(d))).join('<br>')}</td><td>${esc(x.remarque||'')}</td><td>${x.e?esc(authorName(x.e)):''}</td></tr>`).join('')}</tbody></table></div>`; }
+  return `<div class="scrollx"><table><thead><tr><th>${esc(L('Étape','Etapa'))}</th><th>${esc(L('Prévu le','Previsto el'))}</th><th>${esc(L('Fait le','Hecho el'))}</th><th>${esc(L('Lots / parcelle','Lotes / parcela'))}</th><th>${esc(L('Décalages et raisons','Cambios de fecha y causas'))}</th><th>${esc(L('Remarques','Observaciones'))}</th><th>${esc(L('Par','Por'))}</th></tr></thead><tbody>${st.map(x=>`<tr><td><b>${esc(x.label)}</b></td><td>${esc(x.prevu?isoFr(x.prevu):(x.soud&&!x.date?L('selon la soudure','según la soldadura'):''))}</td><td${x.date?'':' class="al"'}>${esc(x.date?(x.auto&&x.date0&&x.date0!==x.date?isoFr(x.date0)+' – ':'')+stepWhen(ch,sc,x.date):(x.partial?x.partial+L(' lots',' lotes'):L('pas encore','todavía no')))}</td><td>${esc(x.cible||'')}</td><td>${(x.dec||[]).filter(d=>d.de).map(d=>esc(plDecText(d))).join('<br>')}</td><td>${esc(x.remarque||'')}</td><td>${x.e?esc(authorName(x.e)):''}</td></tr>`).join('')}</tbody></table></div>`; }
 function plStepsRegistreHTML(ch){ if(!plLots(ch).length&&!plStepEnts(ch).length) return ''; return `<p class="small" style="margin:0 0 4px"><b>${esc(L('Étapes clés','Etapas clave'))}</b></p>`+stepsTableHTML(ch,'plant'); }
 function chStepsRegistreHTML(ch){ return `<section><h3>${esc(L('Étapes clés de la chauffe','Etapas clave de la calefacción'))}</h3>${stepsTableHTML(ch,'chauffe')}</section>`; }
-function stepSummaryLines(ch,sc){ return stepsOf(ch,sc).flatMap(x=>{ const st=plStepStatus(x); return ['  ⭐ '+x.label+' : '+st.txt+(x.cible?' · '+x.cible:'')+(x.remarque?' · '+x.remarque:'')].concat((x.dec||[]).filter(d=>d.de).map(d=>'     ↪ '+plDecText(d))); }); }
+function stepSummaryLines(ch,sc){ return stepsOf(ch,sc).flatMap(x=>{ const st=plStepStatus(x); return ['  ⭐ '+x.label+' : '+(x.date&&!x.auto?L('fait le ','hecho el ')+stepWhen(ch,sc,x.date):st.txt)+(x.cible?' · '+x.cible:'')+(x.remarque?' · '+x.remarque:'')].concat((x.dec||[]).filter(d=>d.de).map(d=>'     ↪ '+plDecText(d))); }); }
 function stepCsvLabel(e){ const sc=e.type==='chstep'?'chauffe':'plant'; return L('Étape clé · ','Etapa clave · ')+stepLabelOf(e,sc)+(e.date?'':(e.prevu?L(' (prévu ',' (previsto ')+isoFr(e.prevu)+')':L(' (à faire)',' (por hacer)')))+((e.decalages||[]).filter(d=>d.de).length?' — '+(e.decalages||[]).filter(d=>d.de).map(plDecText).join(' ; '):''); }
 
 function tabPlantation(ch, body){
