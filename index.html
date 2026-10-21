@@ -311,6 +311,20 @@ body.wide .twocol>details.fold,body.wide .twocol>#mv-card,body.wide .twocol>.car
 body.wide #h-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
 body.wide #g-list,body.wide #b-list,body.wide #dec-list,body.wide #pl-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
 body.wide .sutl{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* Téléphone : onglets en bas */
+body.phone.inch{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 116px)}
+body.phone nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;border-radius:0;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.08);padding:6px 6px calc(env(safe-area-inset-bottom,0px) + 6px);gap:4px}
+body.phone nav.tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}
+body.phone nav.tabs button{min-height:44px;font-size:13.5px;border-radius:10px;padding:6px 2px!important;text-align:center;overflow:hidden;text-overflow:ellipsis}
+body.phone nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+body.phone .toast{bottom:calc(env(safe-area-inset-bottom,0px) + 126px)}
+/* Ordinateur : onglets dans une colonne à gauche */
+body.side.inch{padding-left:228px}
+body.side nav.tabs{position:fixed;top:0;bottom:0;left:0;width:212px;z-index:30;flex-direction:column;justify-content:flex-start;align-items:stretch;border-radius:0;background:var(--surface);border-right:1px solid var(--line);padding:18px 12px;gap:4px;overflow-y:auto}
+body.side nav.tabs::before{content:attr(data-app);font:700 20px var(--f-display);padding:4px 12px 14px;color:var(--muted)}
+body.side nav.tabs button{flex:0 0 auto;text-align:left;font-size:16px;padding:12px 14px!important;min-height:48px;border-radius:10px}
+body.side nav.tabs button:hover{background:var(--sunk)}
+body.side nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:none}
 </style>
 </head>
 <body>
@@ -331,7 +345,7 @@ body.wide .sutl{grid-template-columns:repeat(2,minmax(0,1fr))}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.28.0';
+const APP_VERSION = '2.29.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -898,7 +912,8 @@ const app=$('app');
 /* ---------- Taille d'écran : même interface ; en mode ordinateur la page est plus large, sur deux colonnes ---------- */
 try{ S.screen=localStorage.getItem(LS+'screen')||'auto'; }catch(e){ S.screen='auto'; }
 const isWide=()=>S.screen==='desktop'||(S.screen==='auto'&&window.innerWidth>=1000);
-function applyScreen(){ document.body.classList.toggle('wide',isWide());
+function applyScreen(){ const B=document.body; B.classList.toggle('wide',isWide()); B.classList.toggle('side',S.screen==='desktop'); B.classList.toggle('phone',S.screen==='phone'); B.classList.toggle('inch',S.view==='chauffe');
+  const nav=document.querySelector('nav.tabs'); if(nav){ const ch=curChauffe&&curChauffe(); if(ch) nav.dataset.app=ch.nom; const a=nav.querySelector('[aria-selected="true"]'); if(a&&S.screen==='phone') a.scrollIntoView({inline:'center',block:'nearest'}); }
   ['j-form','a-form'].forEach(id=>{ const f=document.getElementById(id); if(f&&f.parentElement) f.parentElement.classList.add('twocol'); }); }
 let _wasWide=null; window.addEventListener('resize',()=>{ const w=isWide(); if(w!==_wasWide){ _wasWide=w; applyScreen(); } });
 function render(){
@@ -1204,7 +1219,7 @@ function renderSettings(){
     <div class="card">
       <h3>${esc(L("Taille d'écran","Tamaño de pantalla"))}</h3>
       <div class="seg" id="s-screen" role="group"><button type="button" data-v="auto" aria-pressed="${S.screen==='auto'}">${esc(L('Automatique','Automático'))}</button><button type="button" data-v="phone" aria-pressed="${S.screen==='phone'}">${esc(L('Téléphone','Teléfono'))}</button><button type="button" data-v="desktop" aria-pressed="${S.screen==='desktop'}">${esc(L('Ordinateur','Computador'))}</button></div>
-      <p class="note">${esc(L("Automatique : présentation téléphone sur un petit écran, ordinateur sur un grand écran (ou un iPad à l'horizontale). Ordinateur : les mêmes pages, plus larges et sur deux colonnes.","Automático: vista teléfono en pantalla pequeña, computador en pantalla grande (o iPad horizontal). Computador: las mismas páginas, más anchas y en dos columnas."))}</p>
+      <p class="note">${esc(L("Automatique : la présentation habituelle, qui s'élargit sur un grand écran. Téléphone : les onglets en bas de l'écran, à portée du pouce. Ordinateur : les onglets dans une colonne à gauche et la page sur deux colonnes. Les onglets sont les mêmes partout.","Automático: la vista habitual, que se ensancha en pantalla grande. Teléfono: las pestañas abajo de la pantalla, al alcance del pulgar. Computador: las pestañas en una columna a la izquierda y la página en dos columnas. Las pestañas son las mismas en todos."))}</p>
     </div>
     <div class="card">
       <h3>${esc(L('Langue','Idioma'))}</h3>
