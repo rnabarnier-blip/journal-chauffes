@@ -55,6 +55,7 @@ details.gsec{border:1px solid var(--line);border-radius:10px;padding:8px 12px;ba
 table.mini{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}table.mini th,table.mini td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}table.mini th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}table.mini .small{color:var(--muted);font-size:12px}
 .thchips{display:flex;flex-wrap:wrap;gap:6px}.thchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;font:600 14px var(--f-body);cursor:pointer;min-height:38px}.thchip i{width:12px;height:12px;border-radius:50%;background:var(--c)}.thchip[aria-pressed="false"]{opacity:.45;text-decoration:line-through}.thchip[aria-pressed="true"]{border-color:var(--c)}.thquick{display:flex;gap:14px;flex-wrap:wrap}
 .phsug{display:grid;gap:4px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--surface);max-height:340px;overflow:auto;margin-top:6px}.phsug button{display:block;text-align:left;border:0;background:var(--bg);color:var(--fg);border-radius:8px;padding:8px 10px;font:500 15px var(--f-body);cursor:pointer}.phsug button small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}.phsug .hint{font-weight:500}#ph-info ul{font-size:13.5px}
+details.fold{display:grid;gap:10px}details.fold>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:700 16px var(--f-body);cursor:pointer;min-height:52px}details.fold>summary::-webkit-details-marker{display:none}details.fold>summary::after{content:'▸';color:var(--muted);margin-left:auto;transition:transform .15s}details.fold[open]>summary::after{transform:rotate(90deg)}.fbadge{font:600 13px var(--f-mono);background:var(--sunk);border-radius:999px;padding:2px 9px;color:var(--fg)}details.fold>.foldin{display:grid;gap:12px}details.mini>summary{cursor:pointer;font-weight:600;padding:6px 0;color:var(--accent)}details.mini[open]>summary{margin-bottom:8px}
 #c-body .tabpart{display:grid;gap:16px}h3.secttl{margin:18px 2px 0;font-size:18px}
 nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 section.panel{display:grid;gap:16px;padding-top:8px}
@@ -302,6 +303,14 @@ details.sufold[open]>summary{border-color:var(--accent);background:var(--accent-
 .surow .sui{font-size:24px;text-align:center}.surow .sut{display:grid;gap:2px}.surow .sut b{font-size:16px}.surow .sut small{color:var(--muted);font-size:13.5px}.surow .sua{font-size:22px;color:var(--muted)}
 .supaper{padding:12px 10px;gap:12px}
 .supaper h3{font-size:15px}
+body.wide .wrap{max-width:1240px;padding-inline:28px}
+body.wide .twocol{display:grid!important;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:0 22px!important;grid-auto-flow:row dense;align-items:start}
+body.wide .twocol>*{grid-column:1/-1;margin-bottom:16px;min-width:0}
+body.wide .twocol>form.card{grid-column:1;grid-row:span 40}
+body.wide .twocol>details.fold,body.wide .twocol>#mv-card,body.wide .twocol>.card.phyto{grid-column:2}
+body.wide #h-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+body.wide #g-list,body.wide #b-list,body.wide #dec-list,body.wide #pl-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start}
+body.wide .sutl{grid-template-columns:repeat(2,minmax(0,1fr))}
 </style>
 </head>
 <body>
@@ -322,7 +331,7 @@ details.sufold[open]>summary{border-color:var(--accent);background:var(--accent-
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.27.0';
+const APP_VERSION = '2.28.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -886,7 +895,14 @@ function bindLangSeg(id){ const el=$(id); if(!el) return; el.querySelectorAll('b
    RENDU
    ==================================================================== */
 const app=$('app');
+/* ---------- Taille d'écran : même interface ; en mode ordinateur la page est plus large, sur deux colonnes ---------- */
+try{ S.screen=localStorage.getItem(LS+'screen')||'auto'; }catch(e){ S.screen='auto'; }
+const isWide=()=>S.screen==='desktop'||(S.screen==='auto'&&window.innerWidth>=1000);
+function applyScreen(){ document.body.classList.toggle('wide',isWide());
+  ['j-form','a-form'].forEach(id=>{ const f=document.getElementById(id); if(f&&f.parentElement) f.parentElement.classList.add('twocol'); }); }
+let _wasWide=null; window.addEventListener('resize',()=>{ const w=isWide(); if(w!==_wasWide){ _wasWide=w; applyScreen(); } });
 function render(){
+  try{ setTimeout(applyScreen,0); }catch(e){}
   if(!S.me) return renderWelcome();
   if(S.view==='new' || S.view==='edit') return renderChauffeForm();
   if(S.view==='settings') return renderSettings();
@@ -928,13 +944,13 @@ function renderHome(){
     <div class="field"><span class="lab">${esc(L('Dossiers','Carpetas'))}</span>${dossierBarHTML('h-dos',S.dossierSel,true)}${S.dosNew?`<div class="dosrow"><input id="h-dosn" type="text" placeholder="${esc(L('Ex. : Année 1, Saison 2027','Ej.: Año 1, Temporada 2027'))}" value="${esc(S.dosNew===true?'':S.dosNew)}"><button class="primary" type="button" id="h-dosok">${esc(L('Créer','Crear'))}</button><button class="ghost" type="button" id="h-dosx">${esc(L('Annuler','Cancelar'))}</button></div>`:''}${dsel&&!S.dosNew?`<div class="dosrow"><button class="linkbtn" type="button" id="h-dosren">${esc(L('Renommer','Renombrar'))}</button><button class="linkbtn" type="button" id="h-dosdel">${esc(L('Supprimer le dossier','Eliminar la carpeta'))}</button><span class="hint">${esc(L('Les chauffes du dossier ne sont pas supprimées.','Las calefacciones de la carpeta no se eliminan.'))}</span></div>`:''}</div>
     <div class="homebtns"><button class="primary" id="h-new" type="button">+ Nouvelle chauffe${dsel?' · '+esc(dsel.nom):''}</button><button class="ghost" id="h-cmp" type="button">${esc(L('Comparer les saisons','Comparar temporadas'))}</button></div>
     <div class="list" id="h-list"></div>
-    <div class="card">
+    ${fold('hshare', (Sync.active()?'Sauvegarde et partage par fichier':'Partager avec mes collaborateurs'), '', `    <div class="card">
       <h3>${Sync.active()?'Sauvegarde et partage par fichier':'Partager avec mes collaborateurs'}</h3>
       ${Sync.active()?'<p class="note">Le partage avec l\'équipe est automatique. Ces boutons servent à faire une sauvegarde (à garder dans iCloud Drive) ou à transmettre des photos.</p>':''}
       <p class="note">« Partager mes notes » crée un fichier avec toutes les chauffes et notes de cet appareil, à envoyer par AirDrop, WhatsApp ou mail. « Importer » ajoute les notes reçues aux tiennes, sans rien écraser. Ce fichier sert aussi de sauvegarde : garde-en une copie dans iCloud Drive.</p>
       <div class="row"><button class="ghost" id="h-share" type="button">Partager mes notes</button><label class="ghost filebtn" for="h-imp">Importer</label><input class="vh" id="h-imp" type="file" accept="application/json,.json"></div>
       <div class="status" id="h-st"></div>
-    </div>
+    </div>`)}
     <p class="note" style="text-align:center">Notes signées : ${esc(S.me.nom)} · version ${appVer()}</p>
   </section>`;
   const el=$('h-list');
@@ -1186,6 +1202,11 @@ function renderSettings(){
       <div class="status" id="s-st"></div>
     </div>
     <div class="card">
+      <h3>${esc(L("Taille d'écran","Tamaño de pantalla"))}</h3>
+      <div class="seg" id="s-screen" role="group"><button type="button" data-v="auto" aria-pressed="${S.screen==='auto'}">${esc(L('Automatique','Automático'))}</button><button type="button" data-v="phone" aria-pressed="${S.screen==='phone'}">${esc(L('Téléphone','Teléfono'))}</button><button type="button" data-v="desktop" aria-pressed="${S.screen==='desktop'}">${esc(L('Ordinateur','Computador'))}</button></div>
+      <p class="note">${esc(L("Automatique : présentation téléphone sur un petit écran, ordinateur sur un grand écran (ou un iPad à l'horizontale). Ordinateur : les mêmes pages, plus larges et sur deux colonnes.","Automático: vista teléfono en pantalla pequeña, computador en pantalla grande (o iPad horizontal). Computador: las mismas páginas, más anchas y en dos columnas."))}</p>
+    </div>
+    <div class="card">
       <h3>${esc(L('Langue','Idioma'))}</h3>
       ${langSegHTML('s-lang')}
       <p class="note">${esc(L("Change la langue de l'app sur ce téléphone. Les notes déjà écrites ne sont pas traduites.","Cambia el idioma de la app en este teléfono. Las notas ya escritas no se traducen."))}</p>
@@ -1214,7 +1235,7 @@ function renderSettings(){
     </div>
   </section>`;
   $('s-back').onclick=()=>go('home');
-  bindLangSeg('s-lang');
+  bindLangSeg('s-lang'); $('s-screen').querySelectorAll('button').forEach(b=>b.onclick=()=>{ S.screen=b.dataset.v; try{ localStorage.setItem(LS+'screen',S.screen); }catch(e){} $('s-screen').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); applyScreen(); toast(L("Taille d'écran enregistrée.","Tamaño de pantalla guardado.")); });
   $('s-eok').onclick=async()=>{ S.etab={nom:$('s-enom').value.trim(), lieu:$('s-elieu').value.trim(), agrement:$('s-eagr').value.trim()}; await DB.put('reglages',S.etab,'etab'); $('s-est').textContent=L('Établissement enregistré.','Establecimiento guardado.'); $('s-est').className='status ok'; };
   if(SYNC_AVAILABLE){ bindSyncbar();
     $('s-code-ok').onclick=async()=>{ const v=$('s-code').value.trim(); await Sync.setCode(v); $('s-cst').textContent=v?'Code enregistré. Envoi et réception des notes en cours…':'Partage automatique désactivé.'; $('s-cst').className='status ok'; };
@@ -1244,6 +1265,7 @@ function renderChauffe(){
   { const at=app.querySelector('nav.tabs button[aria-selected="true"]'); if(at) at.scrollIntoView({inline:'center',block:'nearest'}); }
   app.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; renderChauffe(); window.scrollTo({top:0}); });
   ({gref:tabGreffage, jour:tabChauffe, hist:tabSuivi, lots:tabChauffe, bilan:tabBilan, acc:(c,b)=>tabAcclim(c,b,'avant'), dec:tabDecaissage, plant:tabPlantation, infos:tabInfos}[S.tab]||tabChauffe)(ch, $('c-body'));
+  applyScreen();
 }
 
 function segHTML(id,key,val,ch,j){ return `<div class="seg" id="${id}">`+OPTS[key].opts.map(o=>`<button type="button" data-v="${esc(o)}" class="${isAlertVal(key,o,ch,j)?'alert':''}" aria-pressed="${val===o}">${esc(o)}</button>`).join('')+'</div>'; }
@@ -1292,10 +1314,15 @@ function thermoAvgText(TV){ const a=thAvg(TV.filter(t=>t.pos==='in').map(t=>t.v)
 
 /* ----- Onglet Chauffe : saisie du jour + contrôle par lot (comme l'onglet Acclim.) ----- */
 function tabChauffe(ch, body){
-  body.innerHTML=`<div id="c-steps" class="tabpart">${stepsCardHTML(ch,'chauffe')}</div><div id="c-jour" class="tabpart"></div><div id="c-fin" class="tabpart"></div><h3 class="secttl" id="c-lots-t">${esc(L('Contrôle par lot','Control por lote'))}</h3><div id="c-lots" class="tabpart"></div>`;
+  body.innerHTML=`<div id="c-steps" class="tabpart">${stepsCardHTML(ch,'chauffe')}</div><div id="c-jour" class="tabpart"></div><div id="c-fin" class="tabpart"></div>${fold('clots', '<span id="c-lots-t">'+esc(L('Contrôle par lot','Control por lote'))+'</span>', entriesOf(ch.id,'lot').length||'', '<div id="c-lots" class="tabpart"></div>', S.tab==='lots')}`;
   bindSteps(ch,'chauffe'); tabJour(ch, $('c-jour')); $('c-fin').innerHTML=finCardHTML(ch); bindFinCard(ch); tabLots(ch, $('c-lots'));
-  if(S.tab==='lots'){ S.tab='jour'; setTimeout(()=>{ const t=$('c-lots-t'); if(t){ const hd=document.querySelector('header.top'); window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-(hd?hd.offsetHeight:0)-8}); } },30); }
+  if(S.tab==='lots'){ S.folds.clots=true; const fd=document.querySelector('details[data-fold="clots"]'); if(fd) fd.open=true; S.tab='jour'; setTimeout(()=>{ const t=$('c-lots-t'); if(t){ const hd=document.querySelector('header.top'); window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-(hd?hd.offsetHeight:0)-8}); } },30); }
 }
+/* ----- Sections repliables, pour une page plus simple (l'état ouvert/fermé est gardé pendant la session) ----- */
+S.folds=S.folds||{};
+function fold(key, title, badge, inner, openDef){ const open=S.folds[key]!=null?S.folds[key]:!!openDef;
+  return `<details class="fold" data-fold="${esc(key)}"${open?' open':''}><summary><span>${title}</span>${badge?`<span class="fbadge">${esc(badge)}</span>`:''}</summary><div class="foldin">${inner}</div></details>`; }
+document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.matches&&d.matches('details.fold,details.mini')&&d.dataset.fold) S.folds[d.dataset.fold]=d.open; },true);
 /* ----- Onglet Saisie ----- */
 function tabJour(ch, body){
   const J=S.jour; const mine=myObs(ch.id,J); const st={}; OBS_KEYS.forEach(k=>st[k]=mine?mine[k]||'':''); Object.defineProperty(st,'chauffeId',{value:ch.id,enumerable:false}); Object.defineProperty(st,'jour',{value:J,enumerable:false});
@@ -1320,26 +1347,30 @@ function tabJour(ch, body){
           <span class="lab colh">${esc(L('Pièce (hors palox)','Sala (fuera del palox)'))}</span><span class="lab colh">${esc(L('Dans le palox','Dentro del palox'))}</span>
           ${thermosOf(ch).length?'<input id="j-ext" type="hidden"><input id="j-int" type="hidden">':`<div class="field"><label for="j-ext">${esc(L('Température (°C)','Temperatura (°C)'))}</label><input id="j-ext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>
           <div class="field"><label for="j-int">${esc(L('Température (°C)','Temperatura (°C)'))}</label><input id="j-int" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="°C"></div>`}
+        </div>
+        <details class="mini" data-fold="hum"${(S.folds.hum!=null?S.folds.hum:rels.some(r=>r.humExt!=null||r.humInt!=null||r.o2Ext!=null||r.o2Int!=null))?' open':''}><summary>${esc(L('Humidité et oxygène','Humedad y oxígeno'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></summary>
+        <div class="relgrid">
+          <span class="lab colh">${esc(L('Pièce (hors palox)','Sala (fuera del palox)'))}</span><span class="lab colh">${esc(L('Dans le palox','Dentro del palox'))}</span>
           <div class="field"><label for="j-hext">${esc(L('Humidité (%)','Humedad (%)'))}</label><input id="j-hext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
           <div class="field"><label for="j-hint">${esc(L('Humidité (%)','Humedad (%)'))}</label><input id="j-hint" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
           <div class="field"><label for="j-oext">${esc(L('Oxygène O₂ (%)','Oxígeno O₂ (%)'))}</label><input id="j-oext" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
           <div class="field"><label for="j-oint">${esc(L('Oxygène O₂ (%)','Oxígeno O₂ (%)'))}</label><input id="j-oint" class="num" type="text" inputmode="decimal" enterkeyhint="done" placeholder="%"></div>
-        </div>
+        </div></details>
         <span class="ex">${esc(L("Ex. : 14h30 · pièce 26 °C et 80 % · palox 27,5 °C et 95 %. Une seule valeur suffit. L'air normal contient 20,9 % d'oxygène.","Ej.: 14h30 · sala 26 °C y 80 % · palox 27,5 °C y 95 %. Basta con un valor. El aire normal contiene 20,9 % de oxígeno."))}</span>
         <button class="primary" id="j-addrel" type="button">+ Ajouter ce relevé</button>
       </div>
       ${OBS_KEYS.map(k=>`<div class="field"><span class="lab">${OPTS[k].titre}${OPTS[k].facultatif?' <span class="hint">(facultatif)</span>':''}</span>${segHTML('seg-'+k,k,st[k],ch,J)}${k==='bois'?`<span class="ex">${esc(inFinChauffe(ch,J)?L('Fin de chauffe : le bois ne doit pas être trop humide, « Mouillé » devient une alerte.','Fin de calefacción: la madera no debe estar demasiado húmeda, « Mojada » pasa a ser una alerta.'):L('À partir de J'+ch.finDe+' (fin de chauffe), le bois ne doit pas être trop humide : « Mouillé » deviendra une alerte.','A partir de J'+ch.finDe+' (fin de calefacción), la madera no debe estar demasiado húmeda: « Mojada » pasará a ser una alerta.'))}</span>`:''}${k==='couverture'?`<span class="ex">${esc(inFinChauffe(ch,J)?L('Fin de chauffe : la couverture doit sécher, « Sèche » n\'est plus une alerte.','Fin de calefacción: la manta debe secarse, « Seca » ya no es una alerta.'):L('À partir de J'+ch.finDe+' (fin de chauffe), la couverture doit sécher : « Sèche » ne sera plus une alerte.','A partir de J'+ch.finDe+' (fin de calefacción), la manta debe secarse: « Seca » ya no será una alerta.'))}</span>`:''}</div>`).join('')}
-      <div class="field"><span class="lab">Photos</span><div class="photos" id="j-ph"></div><label class="ghost filebtn" for="j-phin">+ Ajouter une photo</label><input class="vh" id="j-phin" type="file" accept="image/*" multiple></div>
-      <div class="field"><label for="j-rem">Action du jour / remarques</label><textarea id="j-rem" placeholder="Ce que tu as fait ou remarqué aujourd'hui">${esc(mine?mine.remarque||'':'')}</textarea><span class="ex">Ex. : mise en eau des palox, couverture réhumidifiée.</span></div>
+      ${fold('jphoto', esc(L('Photos et remarques','Fotos y observaciones')), (phs.length?plural(phs.length,'photo','photos','foto','fotos'):'')+(mine&&mine.remarque?(phs.length?' · ':'')+L('remarque','observación'):''), `<div class="field"><span class="lab">Photos</span><div class="photos" id="j-ph"></div><label class="ghost filebtn" for="j-phin">+ Ajouter une photo</label><input class="vh" id="j-phin" type="file" accept="image/*" multiple></div>
+      <div class="field"><label for="j-rem">Action du jour / remarques</label><textarea id="j-rem" placeholder="Ce que tu as fait ou remarqué aujourd'hui">${esc(mine?mine.remarque||'':'')}</textarea><span class="ex">Ex. : mise en eau des palox, couverture réhumidifiée.</span></div>`, !!(mine&&mine.remarque))}
       <div id="j-alert" class="alertbox" hidden></div>
       <div class="field" id="j-raisonf" hidden><label for="j-raison">${esc(L('Raison du problème','Causa del problema'))} <span class="hint">${esc(L('(apparaît dans le registre PDF)','(aparece en el registro PDF)'))}</span></label><textarea id="j-raison" placeholder="${esc(L("Pourquoi c'est arrivé et ce qui a été fait",'Por qué pasó y qué se hizo'))}">${esc(mine?mine.raison||'':'')}</textarea><span class="ex">${esc(L('Ex. : chauffage coupé pendant la nuit, relancé à 7h ; porte de la chambre restée ouverte.','Ej.: calefacción apagada durante la noche, reactivada a las 7h; puerta de la cámara quedó abierta.'))}</span></div>
       <button class="primary" type="submit">Enregistrer la journée</button>
       <div class="status" id="j-st" role="status"></div>
       ${others.length?`<div class="others"><span class="lab">Observations des collaborateurs</span>${others.map(o=>`<div><div class="who">${esc(authorName(o))}</div><div class="chips">${OBS_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${isAlertVal(k,o[k],ch,o.jour)?' al':''}">${esc(OPTS[k].label+' : '+o[k])}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}${o.raison?`<div class="rem"><b>${esc(L('Raison du problème : ','Causa del problema: '))}</b>${esc(o.raison)}</div>`:''}</div>`).join('')}</div>`:''}
     </form>
-    ${notesCardHTML({type:'note', ch, jour:J})}
-    ${phytoCardHTML(ch,J)}
-    ${sensorCardHTML(ch)}`;
+    ${fold('jnotes', esc(L('Notes du jour','Notas del día')), notesOf({type:'note',ch,jour:J}).length||'', notesCardHTML({type:'note', ch, jour:J}))}
+    ${fold('jphyto', esc(L('Traitements','Tratamientos')), phytosOf(ch.id).filter(e=>e.jour===J).length||'', phytoCardHTML(ch,J))}
+    ${fold('jsensor', esc(L('Capteur (import de fichier)','Sensor (importar archivo)')), '', sensorCardHTML(ch))}`;
   bindPhyto(ch,J); bindNotes({type:'note', ch, jour:J});
   bindSensorCard(ch);
   // jours
@@ -1648,6 +1679,7 @@ function accSVG(ch,X,print,kind){
   const leg=isT?SER.filter(se=>se.pts.length).map(se=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px"><i style="display:inline-block;width:16px;height:3px;background:${se.col}"></i>${esc(se.lab)}</span>`).join(''):'';
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(isT?L('Courbe de température','Curva de temperatura'):L("Courbe d'humidité",'Curva de humedad'))}" style="display:block;width:100%;height:auto">${g}</svg>${leg?`<div style="font-size:12.5px;color:${C.text};display:flex;flex-wrap:wrap;gap:4px 0">${leg}</div>`:''}`;
 }
+function accChartsBlock(ch,X){ const c=accChartsHTML(ch,X,false); return (c?`<div class="card" style="gap:8px"><p class="note">${esc(L('Chaque point est un relevé ; en rouge, hors seuil. Les traits pointillés sont les seuils.','Cada punto es una lectura; en rojo, fuera de umbral. Las líneas punteadas son los umbrales.'))}</p>${c}</div>`:'')+thChartCardHTML(accThOpts(ch,X)); }
 function accChartsHTML(ch,X,print){ const t=accSVG(ch,X,print,'t'), h=accSVG(ch,X,print,'h'); if(!t&&!h) return '';
   const ttl=(x)=>print?`<p class="small" style="margin:8px 0 2px"><b>${esc(x)}</b></p>`:`<span class="lab">${esc(x)}</span>`;
   return (t?ttl(L('Température (°C)','Temperatura (°C)'))+t:'')+(h?ttl(L('Humidité de l\'air (%)','Humedad del aire (%)'))+h:''); }
@@ -1677,8 +1709,7 @@ function tabAcclim(ch, body, phase){
       <div class="rem">${esc(L('Du ','Del ')+dayLabel(fin,1)+L(' · prévu ',' · previsto ')+plural(accDur(X),'jour','jours','día','días'))}${X.fin?' · '+esc(L('fin le ','fin el ')+X.fin.split('-').reverse().join('/')):''}</div>
       
       ${accSeuilsText(X)?`<div class="seuilsline">${esc(accSeuilsText(X))}</div>`:''}</div>`}
-    ${accChartsHTML(ch,X,false)?`<div class="card" style="gap:8px"><h3 class="ctitle">${esc(L('Courbes','Curvas'))} · ${esc(accName(ch,X))}</h3><p class="note">${esc(L('Chaque point est un relevé ; en rouge, hors seuil. Les traits pointillés sont les seuils.','Cada punto es una lectura; en rojo, fuera de umbral. Las líneas punteadas son los umbrales.'))}</p>${accChartsHTML(ch,X,false)}</div>`:''}
-    ${thChartCardHTML(accThOpts(ch,X))}
+    ${accRels(ch,X).length?fold('acharts', esc(L('Courbes','Curvas')), '', accChartsBlock(ch,X)):''}
     <div class="field"><span class="lab">${esc(L('Jour','Día'))}</span><div class="dates" id="a-dates"></div></div>
     ${accPresCardHTML(ch,X,A)}
     <form class="card" id="a-form" autocomplete="off">
@@ -1704,9 +1735,9 @@ function tabAcclim(ch, body, phase){
       <div class="status" id="a-st" role="status"></div>
       ${others.length?`<div class="others"><span class="lab">${esc(L('Observations des collaborateurs','Observaciones de los colaboradores'))}</span>${others.map(o=>`<div><div class="who">${esc(authorName(o))}</div><div class="chips">${(o.actions||[]).map(k=>`<span class="chip">${esc(accActLabel(k))}</span>`).join('')}${ACC_KEYS.filter(k=>o[k]).map(k=>`<span class="chip${ACC_ETAT[k].alert.includes(o[k])?' al':''}">${esc(L(ACC_ETAT[k].fr,ACC_ETAT[k].es)+' : '+accOptLabel(k,o[k]))}</span>`).join('')}</div>${o.remarque?`<div class="rem">${esc(o.remarque)}</div>`:''}${o.raison?`<div class="rem"><b>${esc(L('Raison du problème : ','Causa del problema: '))}</b>${esc(o.raison)}</div>`:''}</div>`).join('')}</div>`:''}
     </form>
-    ${notesCardHTML({type:'accnote', ch, X, jour:A})}
-    ${phytoCardHTML(ch,A,{X,A})}
-    <form class="card" id="r-form" autocomplete="off">
+    ${fold('anotes', esc(L('Notes du jour','Notas del día')), accEnts(ch,X,'accnote').filter(e=>e.ajour===A).length||'', notesCardHTML({type:'accnote', ch, X, jour:A}))}
+    ${fold('aphyto', esc(L('Traitements','Tratamientos')), accPhytos(ch,X).filter(e=>e.ajour===A).length||'', phytoCardHTML(ch,A,{X,A}))}
+    ${fold('arep', esc(L('Reprise des lots','Prendimiento de los lotes')), accEnts(ch,X,'reprise').length||'', `<form class="card" id="r-form" autocomplete="off">
       <h3>${esc(L('Contrôle de reprise par lot','Control de prendimiento por lote'))}</h3>
       <p class="note">${esc(L("Compte les plants morts sur un échantillon du lot (ou le lot entier). Le dernier contrôle de chaque lot donne sa reprise dans ce lieu.","Cuenta las plantas muertas en una muestra del lote (o el lote entero). El último control de cada lote da su prendimiento en este lugar."))}</p>
       <div class="field"><label for="r-lot">${esc(L('N° de lot','N° de lote'))}</label><input id="r-lot" type="text" inputmode="numeric" list="r-lotsref" placeholder="${esc(L('Numéro','Número'))}"><datalist id="r-lotsref">${lots.map(l=>`<option value="${esc(l.lot)}">${esc(L('Lot ','Lote ')+l.lot+' · '+[l.variete,l.pg].filter(Boolean).join(' / '))}</option>`).join('')}</datalist><span class="ex" id="r-lotinfo">${esc(L('Variété et porte-greffe sont repris de la chauffe.','Variedad y portainjerto vienen de la calefacción.'))}</span></div>
@@ -1720,7 +1751,7 @@ function tabAcclim(ch, body, phase){
       <div class="status" id="r-st"></div>
     </form>
     ${lw.length?`<div class="card" style="gap:8px"><h3>${esc(L('Résumé par lot','Resumen por lote'))} · ${esc(accName(ch,X))}</h3><div class="scrollx"><table class="mini"><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Triage','Selección'))}</th><th>${esc(L('Reprise','Prendimiento'))}</th></tr></thead><tbody>${lw.map(l=>{ const e=rep[l.lot]; return `<tr><td>${esc(l.lot)}${l.variete||l.pg?' <span class="small">'+esc([l.variete,l.pg].filter(Boolean).join('/'))+'</span>':''}</td><td>${l.b?pct(bilanRate(l.b)):'—'}</td><td>${e?pct(repriseRate(e))+' <span class="small">(A'+e.ajour+')</span>':'—'}</td></tr>`; }).join('')}</tbody></table></div></div>`:''}
-    <div class="list" id="r-list"></div>`;
+    <div class="list" id="r-list"></div>`)}`;
   bindAccTabs(ch); bindAccPres(ch,X,A); bindNotes({type:'accnote', ch, X, jour:A}); bindPhyto(ch,A,{X,A});
   if(editSet) bindAccSet(ch,X); else $('a-edit').onclick=()=>{ S.accEdit=ch.id+':'+X.id; renderChauffe(); };
   // jours
