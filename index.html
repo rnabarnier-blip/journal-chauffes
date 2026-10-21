@@ -291,6 +291,8 @@ details.stepsall .stepdone{background:var(--surface)}
 .dates button .sd{position:absolute;top:-7px;right:-5px;font-size:13px;font-style:normal}
 .dates button{position:relative}
 .chip.stp{background:var(--ok-soft);color:var(--ok);font-weight:700}
+.stepsnone{padding:2px 2px}
+#ps-form .two>.field{min-width:0}#ps-form input[type=date]{min-width:0;width:100%;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -311,7 +313,7 @@ details.stepsall .stepdone{background:var(--surface)}
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.25.0';
+const APP_VERSION = '2.26.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -1984,12 +1986,17 @@ const STEP_OLD={plast:['Retrait du plastique','Retiro del plástico'], couv:['Re
 const stepEnts=(ch,sc)=>entriesOf(ch.id,STEP_SC[sc].type);
 const plStepEnts=ch=>stepEnts(ch,'plant');
 function stepLabelOf(e,sc){ if(e.label) return e.label; const d=STEP_SC[sc].defs.find(x=>x.key===e.key); if(d) return L(d.fr,d.es); const o=STEP_OLD[e.key]; return o?L(o[0],o[1]):L('Étape','Etapa'); }
+/* Étapes intégrées retirées de cette chauffe, qu'on peut remettre */
+function stepsHidden(ch,sc){ const C=STEP_SC[sc]; const ents=stepEnts(ch,sc); const out=[]; const hid=k=>ents.find(e=>e.key===k&&e.masque);
+  if(C.auto&&hid('plantation')) out.push({key:'plantation', label:L('Plantation des lots','Plantación de los lotes'), e:hid('plantation')});
+  C.defs.forEach(d=>{ if(hid(d.key)) out.push({key:d.key, label:L(d.fr,d.es), e:hid(d.key)}); }); return out; }
 function stepsOf(ch,sc){ const C=STEP_SC[sc]; const ents=stepEnts(ch,sc); const out=[];
-  if(C.auto){ const lots=ch.lots||[]; const pl=plLots(ch); const pd=pl.map(e=>e.date).filter(Boolean).sort(); const nLots=lots.length, nDone=lots.filter(l=>plLotOf(ch,l.lot)).length;
+  const hid=k=>ents.some(e=>e.key===k&&e.masque);
+  if(C.auto&&!hid('plantation')){ const lots=ch.lots||[]; const pl=plLots(ch); const pd=pl.map(e=>e.date).filter(Boolean).sort(); const nLots=lots.length, nDone=lots.filter(l=>plLotOf(ch,l.lot)).length;
     out.push({key:'plantation', label:L('Plantation des lots','Plantación de los lotes'), auto:true, date:nLots&&nDone>=nLots&&pd.length?pd[pd.length-1]:null, date0:pd[0]||null, partial:nDone&&nDone<nLots?nDone+' / '+nLots:null, cible:[...new Set(pl.map(e=>e.cible).filter(Boolean))].join(', '), dec:[]}); }
-  C.defs.forEach(d=>{ const e=ents.find(x=>x.key===d.key); out.push(Object.assign({key:d.key, label:L(d.fr,d.es), def:true, soud:d.soud}, e?{e, date:e.date||null, prevu:e.prevu||null, cible:e.cible||'', remarque:e.remarque||'', dec:e.decalages||[]}:{dec:[]})); });
+  C.defs.forEach(d=>{ if(hid(d.key)) return; const e=ents.find(x=>x.key===d.key); out.push(Object.assign({key:d.key, label:L(d.fr,d.es), def:true, soud:d.soud}, e?{e, date:e.date||null, prevu:e.prevu||null, cible:e.cible||'', remarque:e.remarque||'', dec:e.decalages||[]}:{dec:[]})); });
   const nd=out.length; const ord=x=>x.date||x.prevu||'9';
-  const cus=ents.filter(e=>!C.defs.some(d=>d.key===e.key)).map((e,i)=>({key:e.key, label:stepLabelOf(e,sc), e, date:e.date||null, prevu:e.prevu||null, cible:e.cible||'', remarque:e.remarque||'', dec:e.decalages||[], custom:true, i}));
+  const cus=ents.filter(e=>!e.masque&&e.key!=='plantation'&&!C.defs.some(d=>d.key===e.key)).map((e,i)=>({key:e.key, label:stepLabelOf(e,sc), e, date:e.date||null, prevu:e.prevu||null, cible:e.cible||'', remarque:e.remarque||'', dec:e.decalages||[], custom:true, i}));
   return out.slice(0,nd).concat(cus.sort((a,b)=>ord(a).localeCompare(ord(b))||a.i-b.i)); }
 const plSteps=ch=>stepsOf(ch,'plant');
 const plDecText=d=>(d.fait?L('Fait le ','Hecho el ')+isoFr(d.a)+L(' au lieu du ',' en vez del ')+isoFr(d.de):L('Décalé du ','Postergado del ')+isoFr(d.de)+L(' au ',' al ')+(d.a?isoFr(d.a):L('date à revoir','fecha por definir')))+(d.raison?' — '+d.raison:'')+(d.par?' ('+d.par+')':'');
@@ -2016,18 +2023,20 @@ function stepsCardHTML(ch,sc){ const st=stepsOf(ch,sc); const ed=S.stepEd&&S.ste
   const done=st.filter(x=>x.date&&!(ed&&ed.key===x.key)), todo=st.filter(x=>!x.date||(ed&&ed.key===x.key));
   const doneRows=done.map(x=>`<div class="stepdone"><span>✅ <b>${esc(x.label)}</b> · ${esc(x.auto&&x.date0&&x.date0!==x.date?isoFr(x.date0)+' → '+isoFr(x.date):stepWhen(ch,sc,x.date))}${(x.dec||[]).filter(d=>d.de).length?' · <span class="hint">'+esc(L('décalé','postergado'))+'</span>':''}</span>${x.auto?'':`<button class="linkbtn" type="button" data-sed="${esc(x.key)}">${esc(L('Modifier','Modificar'))}</button>`}</div>`).join('');
   const title=sc==='chauffe'?L('Étapes clés de la chauffe','Etapas clave de la calefacción'):L('Étapes clés','Etapas clave');
-  const addBtn=ed&&ed.key==='+new'?stepFormHTML({key:'+new', custom:true, label:''}):`<button class="linkbtn" type="button" id="st-new">${esc(L('+ Ajouter une étape clé','+ Agregar una etapa clave'))}</button>`;
+  const addBtn=ed&&ed.key==='+new'?stepFormHTML({key:'+new', custom:true, label:'', hidden:stepsHidden(ch,sc)}):`<button class="linkbtn" type="button" id="st-new">${esc(L('+ Ajouter une étape clé','+ Agregar una etapa clave'))}</button>`;
+  if(!st.length&&!(ed&&ed.key==='+new')) return `<div class="stepsnone" id="st-card"><button class="linkbtn" type="button" id="st-new">⭐ ${esc(L('+ Ajouter une étape clé','+ Agregar una etapa clave'))}</button></div>`;
   if(st.length&&!todo.length&&!(ed&&ed.key==='+new')) return `<details class="stepsall" id="st-card"${S.stepsOpen?' open':''}><summary>⭐ ${esc(title)} : ${esc(L('tout est fait','todo hecho'))} ✅ <span class="mono">${st.length} / ${st.length}</span></summary><div class="stepsdone">${doneRows}</div>${addBtn}</details>`;
   return `<div class="card stepscard" id="st-card">
     <div class="hhead"><h3>⭐ ${esc(title)}</h3><span class="mono">${st.filter(x=>x.date).length} / ${st.length}</span></div>
     ${doneRows?`<div class="stepsdone">${doneRows}</div>`:''}
     ${todo.length?`<ol class="steptl">${todo.map((x)=>{ const i=st.indexOf(x); const s=plStepStatus(x); const editing=ed&&ed.key===x.key;
       return `<li class="${s.cls}"><span class="dot">${x.date?'✓':i+1}</span><div class="sbody"><div class="stitle">${esc(x.label)}</div><div class="sstat">${s.ic} ${esc(s.txt)}</div>${x.cible?`<div class="hint">${esc(x.cible)}</div>`:''}${x.remarque?`<div class="hint">${esc(x.remarque)}</div>`:''}${(x.dec||[]).filter(d=>d.de).map(d=>`<div class="decal">↪ ${esc(plDecText(d))}</div>`).join('')}${x.e&&x.date?`<div class="who">${esc(authorName(x.e))}</div>`:''}
-        ${editing?stepFormHTML(x):x.auto?`<button class="ghost" type="button" data-sgo="lots">${esc(x.date?L('Voir les lots','Ver los lotes'):L('Noter la plantation des lots','Anotar la plantación de los lotes'))}</button>`:`<div class="row">${x.date?'':`<button class="primary" type="button" data-sdone="${esc(x.key)}">✓ ${esc(L('Fait ','Hecho ')+mkLab)}</button>`}<button class="ghost" type="button" data-sed="${esc(x.key)}">${esc(x.date?L('Modifier','Modificar'):L('Prévoir / détails','Prever / detalles'))}</button></div>`}</div></li>`; }).join('')}</ol>`:''}
+        ${editing?stepFormHTML(x):x.auto?`<div class="row"><button class="ghost" type="button" data-sgo="lots">${esc(x.date?L('Voir les lots','Ver los lotes'):L('Noter la plantation des lots','Anotar la plantación de los lotes'))}</button><button class="linkbtn" type="button" data-shide="${esc(x.key)}">${esc(L('Retirer cette étape','Quitar esta etapa'))}</button></div>`:`<div class="row">${x.date?'':`<button class="primary" type="button" data-sdone="${esc(x.key)}">✓ ${esc(L('Fait ','Hecho ')+mkLab)}</button>`}<button class="ghost" type="button" data-sed="${esc(x.key)}">${esc(x.date?L('Modifier','Modificar'):L('Prévoir / détails','Prever / detalles'))}</button></div>`}</div></li>`; }).join('')}</ol>`:''}
     ${addBtn}
   </div>`; }
 function stepFormHTML(x){ return `<div class="card" style="gap:10px;background:var(--sunk);margin-top:8px" id="ps-form">
-    ${x.custom?`<div class="field"><label for="ps-l">${esc(L("Nom de l'étape","Nombre de la etapa"))}</label><input id="ps-l" type="text" value="${esc(x.key==='+new'?'':x.label)}" placeholder="${esc(L('Ex. : mise en eau, contrôle de la soudure, binage','Ej.: puesta en agua, control de la soldadura, azadonado'))}"></div>`:''}
+    ${x.key==='+new'&&x.hidden&&x.hidden.length?`<div class="field"><span class="lab">${esc(L('Remettre une étape retirée','Volver a poner una etapa quitada'))}</span><div class="plkinds">${x.hidden.map(h=>`<button type="button" data-sback="${esc(h.key)}">↩ ${esc(h.label)}</button>`).join('')}</div><span class="ex">${esc(L('Ou crée une nouvelle étape ci-dessous.','O crea una nueva etapa abajo.'))}</span></div>`:''}
+    ${x.custom?`<div class="field"><label for="ps-l">${esc(x.key==='+new'?L("Nom de la nouvelle étape","Nombre de la nueva etapa"):L("Nom de l'étape","Nombre de la etapa"))}</label><input id="ps-l" type="text" value="${esc(x.key==='+new'?'':x.label)}" placeholder="${esc(L('Ex. : mise en eau, contrôle de la soudure, binage','Ej.: puesta en agua, control de la soldadura, azadonado'))}"></div>`:''}
     <div class="two"><div class="field"><label for="ps-p">${esc(L('Prévu le','Previsto el'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="ps-p" type="date" value="${esc(x.prevu||'')}"></div>
       <div class="field"><label for="ps-d">${esc(L('Fait le','Hecho el'))}</label><input id="ps-d" type="date" value="${esc(S.stepEd&&S.stepEd.doneDate?S.stepEd.doneDate:(x.date||''))}"></div></div>
     ${x.soud?`<span class="ex">${esc(L("Pas de date fixe : ça dépend de la soudure. Mets une date prévue seulement si c'est programmé.","Sin fecha fija: depende de la soldadura. Pon una fecha prevista solo si está programado."))}</span>`:''}
@@ -2035,7 +2044,7 @@ function stepFormHTML(x){ return `<div class="card" style="gap:10px;background:v
     <div class="field"><label for="ps-c">${esc(L('Lots / palox / parcelle','Lotes / palox / parcela'))} <span class="hint">${esc(L('(facultatif)','(opcional)'))}</span></label><input id="ps-c" type="text" list="pl-parcs" value="${esc(x.cible||'')}" placeholder="${esc(L('Ex. : tous les palox, lots 9 à 14','Ej.: todos los palox, lotes 9 a 14'))}"></div>
     <div class="field"><label for="ps-r">${esc(L('Remarques','Observaciones'))}</label><input id="ps-r" type="text" value="${esc(x.remarque||'')}"></div>
     <div class="row"><button class="primary" type="button" id="ps-ok">${esc(L('Enregistrer','Guardar'))}</button><button class="ghost" type="button" id="ps-x">${esc(L('Annuler','Cancelar'))}</button></div>
-    ${x.custom&&x.e?`<button class="ghost danger" type="button" id="ps-del">${esc(L('Supprimer cette étape','Eliminar esta etapa'))}</button>`:''}
+    ${x.key!=='+new'?`<button class="ghost danger" type="button" id="ps-del">${esc(L('Retirer cette étape de la chauffe','Quitar esta etapa de la calefacción'))}</button>`:''}
     <div class="status" id="ps-st"></div></div>`; }
 function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; if(card.tagName==='DETAILS') card.addEventListener('toggle',()=>{ S.stepsOpen=card.open; }); const st=stepsOf(ch,sc); const type=STEP_SC[sc].type;
   const save=async(x,vals)=>{ const id=x.e?x.e.id:type+':'+ch.id+':'+(x.key==='+new'?'c-'+uid():x.key); const key=id.split(':').pop();
@@ -2049,6 +2058,8 @@ function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; if(card.ta
     if(x.prevu&&x.prevu!==mk) return openEd(x.key,{doneDate:mk});
     await save(x,{date:mk}); toast('✅ '+x.label+' : '+L('fait le ','hecho el ')+stepWhen(ch,sc,mk)+'.'); renderChauffe(); });
   card.querySelectorAll('[data-sed]').forEach(b=>b.onclick=()=>openEd(b.dataset.sed));
+  card.querySelectorAll('[data-shide]').forEach(b=>{ let c=false; b.onclick=async()=>{ if(!c){ c=true; b.textContent=L('Toucher encore pour retirer','Tocar otra vez para quitar'); return; } const x=st.find(y=>y.key===b.dataset.shide); await save(Object.assign({},x,{e:stepEnts(ch,sc).find(e=>e.key===x.key)}),{masque:true}); toast(L('Étape retirée. Tu peux la remettre avec « + Ajouter une étape clé ».','Etapa quitada. Puedes volver a ponerla con « + Agregar una etapa clave ».')); renderChauffe(); }; });
+  card.querySelectorAll('[data-sback]').forEach(b=>b.onclick=async()=>{ const h=stepsHidden(ch,sc).find(y=>y.key===b.dataset.sback); if(!h) return; await save(h,{masque:false}); S.stepEd=null; toast(L('Étape remise : ','Etapa repuesta: ')+h.label+'.'); renderChauffe(); });
   if($('st-new')) $('st-new').onclick=()=>{ S.stepEd={chId:ch.id, sc, key:'+new'}; renderChauffe(); setTimeout(()=>{ const f=$('ps-l'); if(f){ f.scrollIntoView({block:'center'}); f.focus(); } },30); };
   if($('ps-form')){ const key=S.stepEd.key; const x=key==='+new'?{key:'+new', custom:true, dec:[]}:st.find(y=>y.key===key);
     const oldP=x.prevu||'', oldD=x.date||'';
@@ -2064,12 +2075,12 @@ function bindSteps(ch,sc){ const card=$('st-card'); if(!card) return; if(card.ta
         vals.decalages=(x.dec||[]).concat(ds.map(d=>Object.assign(d,{raison:why, par:S.me.nom, le:nowIso()}))); }
       if($('ps-l')){ vals.label=$('ps-l').value.trim(); if(!vals.label){ $('ps-st').textContent=L("Donne un nom à l'étape.","Ponle un nombre a la etapa."); $('ps-st').className='status err'; $('ps-l').focus(); return; } }
       await save(x,vals); S.stepEd=null; toast(L('Étape enregistrée.','Etapa guardada.')); renderChauffe(); };
-    if($('ps-del')){ let c=false; $('ps-del').onclick=async()=>{ if(!c){ c=true; $('ps-del').textContent=L('Toucher encore pour supprimer','Tocar otra vez para eliminar'); return; } await removeEntry(x.e); S.stepEd=null; toast(L('Étape supprimée.','Etapa eliminada.')); renderChauffe(); }; }
+    if($('ps-del')){ let c=false; $('ps-del').onclick=async()=>{ if(!c){ c=true; $('ps-del').textContent=x.date?L('Elle est déjà faite : toucher encore pour la retirer quand même','Ya está hecha: tocar otra vez para quitarla igual'):L('Toucher encore pour retirer','Tocar otra vez para quitar'); return; } if(x.custom){ await removeEntry(x.e); toast(L('Étape supprimée.','Etapa eliminada.')); } else { await save(x,{masque:true}); toast(L('Étape retirée. Tu peux la remettre avec « + Ajouter une étape clé ».','Etapa quitada. Puedes volver a ponerla con « + Agregar una etapa clave ».')); } S.stepEd=null; renderChauffe(); }; }
   } }
 function stepsTableHTML(ch,sc){ const st=stepsOf(ch,sc); if(!st.length) return '';
   return `<div class="scrollx"><table><thead><tr><th>${esc(L('Étape','Etapa'))}</th><th>${esc(L('Prévu le','Previsto el'))}</th><th>${esc(L('Fait le','Hecho el'))}</th><th>${esc(L('Lots / parcelle','Lotes / parcela'))}</th><th>${esc(L('Décalages et raisons','Cambios de fecha y causas'))}</th><th>${esc(L('Remarques','Observaciones'))}</th><th>${esc(L('Par','Por'))}</th></tr></thead><tbody>${st.map(x=>`<tr><td><b>${esc(x.label)}</b></td><td>${esc(x.prevu?isoFr(x.prevu):(x.soud&&!x.date?L('selon la soudure','según la soldadura'):''))}</td><td${x.date?'':' class="al"'}>${esc(x.date?(x.auto&&x.date0&&x.date0!==x.date?isoFr(x.date0)+' – ':'')+stepWhen(ch,sc,x.date):(x.partial?x.partial+L(' lots',' lotes'):L('pas encore','todavía no')))}</td><td>${esc(x.cible||'')}</td><td>${(x.dec||[]).filter(d=>d.de).map(d=>esc(plDecText(d))).join('<br>')}</td><td>${esc(x.remarque||'')}</td><td>${x.e?esc(authorName(x.e)):''}</td></tr>`).join('')}</tbody></table></div>`; }
 function plStepsRegistreHTML(ch){ if(!plLots(ch).length&&!plStepEnts(ch).length) return ''; return `<p class="small" style="margin:0 0 4px"><b>${esc(L('Étapes clés','Etapas clave'))}</b></p>`+stepsTableHTML(ch,'plant'); }
-function chStepsRegistreHTML(ch){ return `<section><h3>${esc(L('Étapes clés de la chauffe','Etapas clave de la calefacción'))}</h3>${stepsTableHTML(ch,'chauffe')}</section>`; }
+function chStepsRegistreHTML(ch){ if(!stepsOf(ch,'chauffe').length) return ''; return `<section><h3>${esc(L('Étapes clés de la chauffe','Etapas clave de la calefacción'))}</h3>${stepsTableHTML(ch,'chauffe')}</section>`; }
 function stepSummaryLines(ch,sc){ return stepsOf(ch,sc).flatMap(x=>{ const st=plStepStatus(x); return ['  ⭐ '+x.label+' : '+(x.date&&!x.auto?L('fait le ','hecho el ')+stepWhen(ch,sc,x.date):st.txt)+(x.cible?' · '+x.cible:'')+(x.remarque?' · '+x.remarque:'')].concat((x.dec||[]).filter(d=>d.de).map(d=>'     ↪ '+plDecText(d))); }); }
 function stepCsvLabel(e){ const sc=e.type==='chstep'?'chauffe':'plant'; return L('Étape clé · ','Etapa clave · ')+stepLabelOf(e,sc)+(e.date?'':(e.prevu?L(' (prévu ',' (previsto ')+isoFr(e.prevu)+')':L(' (à faire)',' (por hacer)')))+((e.decalages||[]).filter(d=>d.de).length?' — '+(e.decalages||[]).filter(d=>d.de).map(plDecText).join(' ; '):''); }
 
@@ -3274,7 +3285,7 @@ function summary(ch){
   const bl=lotsWithBilan(ch).filter(l=>l.b); if(bl.length){ const ag=aggRate(lotsWithBilan(ch)); out.push('',L('Bilan de fin de chauffe','Balance de fin de calefacción')+' : '+pct(ag.rate)); bl.forEach(l=>out.push('  '+L('Lot ','Lote ')+l.lot+((l.variete||l.pg)?' ('+[l.variete,l.pg].filter(Boolean).join('/')+')':'')+' · '+pct(bilanRate(l.b))+(isPctBilan(l.b)?'':' ('+bilanBons(l.b)+'/'+l.b.tries+')')+(l.b.cause?' · '+T(l.b.cause):''))); }
   { const dd=decLots(ch).filter(l=>l.d); if(dd.length){ const ag=decAgg(dd); out.push('',L('Décaissage','Desencajonado')+' : '+pct(ag.rate)+' '+L('de palox gardés','de palox conservados')+' ('+fmtN(ag.pRem)+'/'+fmtN(ag.pDec)+')'); dd.forEach(l=>out.push('  '+L('Lot ','Lote ')+l.lot+' · '+fmtN(l.d.pDec)+' → '+fmtN(l.d.pRem)+' palox ('+pct(decRate(l.d))+')'+(l.d.jour?' · J'+l.d.jour:'')+(l.d.place?' · '+l.d.place:''))); } }
   { const so=entriesOf(ch.id,'sortie'); if(so.length){ const bd={}; so.forEach(e=>(bd[e.jour]=bd[e.jour]||[]).push(e.lot)); out.push('',L('Sortie de chauffe','Salida de calefacción')+' : '+Object.keys(bd).sort((a,b)=>a-b).map(j=>'J'+j+' → '+bd[j].join(', ')).join(' ; ')); } }
-  out.push('',L('Étapes clés de la chauffe','Etapas clave de la calefacción'),...stepSummaryLines(ch,'chauffe'));
+  { const sl=stepSummaryLines(ch,'chauffe'); if(sl.length) out.push('',L('Étapes clés de la chauffe','Etapas clave de la calefacción'),...sl); }
   out.push(...accSummaryLines(ch));
   out.push(...plantSummaryLines(ch));
   return out.join('\n');
@@ -3283,7 +3294,7 @@ function csv(ch){
   const c=v=>{ const s=v==null?'':String(v); return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
   const dec=v=>v==null||v===''?'':String(v).replace('.',',');
   const rows=[['Jour','Date','Type','Heure','T° pièce (°C)','T° dans palox (°C)','HR pièce (%)','HR palox (%)','O₂ pièce (%)','O₂ palox (%)','Source','Lot','Variété','Porte-greffe','Nb plants','Plants triés','Plants bons','Réussite (%)','Cause rebuts','Produit','Pays produit','N° homologation','Matière active','Dose','Unité','Méthode','Cible','Bouillie (L)',...OBS_KEYS.map(k=>OPTS[k].label),'Remarques','Raison du problème','Thermomètres','Greffage (détail)','2e choix','À remettre en chauffe','Date du tri','T° acclim. air (°C)','T° acclim. palox (°C)','HR acclim. (%)','Actions','Pousses','Feuilles','Plants regardés','Plants morts','Palox décaissés','Palox re-remplis','Place dans la chambre','Auteur'].map(T)];
-  const dk=e=>e.ajour!=null?1000+e.ajour:(e.jour!=null?e.jour:(e.type==='chstep'?999:(e.type==='plantlot'||e.type==='plantop'||e.type==='plantstep'||e.plant)?5000:0)); const ents=entriesOf(ch.id).filter(e=>e.type!=='photo').sort((a,b)=>dk(a)-dk(b)||(dk(a)>=999?(a.date||a.prevu||'').localeCompare(b.date||b.prevu||''):0)||(a.heure||'').localeCompare(b.heure||''));
+  const dk=e=>e.ajour!=null?1000+e.ajour:(e.jour!=null?e.jour:(e.type==='chstep'?999:(e.type==='plantlot'||e.type==='plantop'||e.type==='plantstep'||e.plant)?5000:0)); const ents=entriesOf(ch.id).filter(e=>e.type!=='photo'&&!e.masque).sort((a,b)=>dk(a)-dk(b)||(dk(a)>=999?(a.date||a.prevu||'').localeCompare(b.date||b.prevu||''):0)||(a.heure||'').localeCompare(b.heure||''));
   ents.forEach(e=>rows.push([e.ajour!=null?'A'+e.ajour:(e.jour!=null?'J'+e.jour:''), e.ajour!=null?(accById(ch,e.accId)?dayShort(accCh(accById(ch,e.accId)),e.ajour):''):(e.jour!=null?dayShort(ch,e.jour):(e.date?isoFr(e.date):'')), e.ajour!=null?({accrel:L('Acclim. relevé','Aclim. lectura'),accobs:L('Acclim. observation','Aclim. observación'),reprise:L('Contrôle de reprise','Control de prendimiento'),accmv:L('Acclim. mouvement de lot','Aclim. movimiento de lote'),accnote:L('Acclim. note','Aclim. nota'),phyto:L('Acclim. traitement','Aclim. tratamiento')}[e.type]||e.type)+(accById(ch,e.accId)?' · '+accName(ch,accById(ch,e.accId)):''):e.type==='plantop'?L('Plantation · ','Plantación · ')+plKindLabel(e.kind)+(plDetail(e)?' ('+plDetail(e)+')':''):e.type==='plantlot'?L('Plantation du lot','Plantación del lote'):(e.type==='plantstep'||e.type==='chstep')?stepCsvLabel(e):(e.type==='phyto'&&e.plant)?L('Plantation · traitement','Plantación · tratamiento'):T({releve:'Relevé',obs:'Observation',lot:'Contrôle lot',bilan:'Triage',phyto:'Traitement',decaisse:'Décaissage',greffage:'Greffage',sortie:'Sortie de chauffe',note:'Note'}[e.type]||e.type), e.heure||'', dec(e.tExt), dec(e.tInt), dec(e.type==='releve'?hOut(e):null), dec(e.type==='releve'?hIn(e):null), dec(e.o2Ext), dec(e.o2Int), e.source==='capteur'?L('capteur','sensor')+' '+(e.capteur||''):'', e.lot||'', e.variete||'', e.pg||'', e.nb??'', e.tries??'', e.bons??'', e.type==='bilan'&&bilanRate(e)!=null?dec(Math.round(bilanRate(e)*1000)/10):(e.type==='reprise'&&repriseRate(e)!=null?dec(Math.round(repriseRate(e)*1000)/10):''), T(e.cause||''), e.produit||'', e.pays?L(PAYS[e.pays].fr,PAYS[e.pays].es):'', e.amm||'', e.matiere||'', dec(e.dose), e.unite||'', T(e.methode||''), e.cible||'', dec(e.volume), ...OBS_KEYS.map(k=>T(e[k]||'')), (e.type==='accmv'?(e.action==='in'?L('Arrivée du lot','Llegada del lote'):L('Départ du lot','Salida del lote')):(e.type==='note'||e.type==='accnote')?e.texte||'':e.remarque||''), e.raison||'', thermoText(e), e.type==='greffage'?grefText(e):'', e.c2||'', e.rech||'', e.dateTri||'', e.type==='accrel'?dec(e.t):'', e.type==='accrel'?dec(e.tIn):'', e.type==='accrel'?dec(e.hum):'', (e.actions||[]).map(accActLabel).join(', '), e.pousses?accOptLabel('pousses',e.pousses):'', e.feuilles?accOptLabel('feuilles',e.feuilles):'', e.type==='reprise'?e.regardes:'', e.type==='reprise'?e.morts:'', e.type==='decaisse'?dec(e.pDec):'', e.type==='decaisse'?dec(e.pRem):'', e.type==='decaisse'?e.place||'':'', e.source==='capteur'?'':noteWho(e)]));
   return rows.map(r=>r.map(c).join(';')).join('\r\n');
 }
