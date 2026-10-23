@@ -325,6 +325,12 @@ body.side nav.tabs::before{content:attr(data-app);font:700 20px var(--f-display)
 body.side nav.tabs button{flex:0 0 auto;text-align:left;font-size:16px;padding:12px 14px!important;min-height:48px;border-radius:10px}
 body.side nav.tabs button:hover{background:var(--sunk)}
 body.side nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+.gfilt{display:grid;gap:10px}
+.gfilt .two>.field{min-width:0}.gfilt select{width:100%;min-width:0}
+.gselbar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);max-width:720px;margin:0 auto;z-index:25;box-shadow:0 6px 20px rgba(0,0,0,.18);background:var(--accent-soft);border:2px solid var(--accent);border-radius:12px;padding:10px 12px;display:grid;gap:4px;font-size:15px}
+body.phone .gselbar{bottom:calc(env(safe-area-inset-bottom,0px) + 122px)}body.side .gselbar{left:240px}
+.item.gsel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft) inset}
+.gaddbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
@@ -345,7 +351,7 @@ body.side nav.tabs button[aria-selected="true"]{background:var(--accent-soft);co
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.29.0';
+const APP_VERSION = '2.30.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -2333,27 +2339,72 @@ function grefVal(f,v){ if(v==null||v==='') return ''; if(f[1]==='date') return i
 function grefSecText(e,sec){ const S_=GREF_SECTIONS.find(s=>s.k===sec); return S_.fields.filter(f=>e&&e[f[0]]!=null&&e[f[0]]!=='').map(f=>{ const lab=L(f[2],f[3]).replace(/ \(.*\)$/,'').replace(' : ',' '); return lab+' : '+grefVal(f,e[f[0]])+(f[1]==='num'&&/\(°C\)/.test(f[2])?' °C':f[1]==='num'&&/\(min\)/.test(f[2])?' min':f[1]==='num'&&/\(h\)/.test(f[2])?' h':''); }).join(' · '); }
 const grefText=e=>['g','p','b'].map(k=>grefSecText(e,k)).filter(Boolean).join(' | ');
 const cassePct=(l,e)=>e&&e.casse>0&&l.qte>0?e.casse/(l.qte+e.casse):null;
+/* Filtres et addition des lots dans l'onglet Greffage */
+function grefRows(ch){ return (ch.lots||[]).map(l=>({l, e:grefOf(ch.id,l.lot)})); }
+function grefOpts(rows,f){ return [...new Set(rows.map(f).flat().filter(v=>v!=null&&v!==''))].sort((x,y)=>String(x).localeCompare(String(y),undefined,{numeric:true})); }
+const grefGreffeurs=e=>e&&e.greffeur?String(e.greffeur).split(/\s*(?:,|;|\/|\+|&|\bet\b|\by\b)\s*/i).map(x=>x.trim()).filter(Boolean):[];
+function grefMatch(r,F){ const l=r.l, e=r.e||{};
+  if(F.v&&(l.variete||'')!==F.v) return false; if(F.pg&&(l.pg||'')!==F.pg) return false;
+  if(F.d&&(e.date||'')!==F.d) return false; if(F.t&&(e.typeG||'')!==F.t) return false;
+  if(F.m&&(e.machine||'')!==F.m) return false; if(F.g&&!grefGreffeurs(e).includes(F.g)) return false;
+  if(F.info==='oui'&&!r.e) return false; if(F.info==='non'&&r.e) return false;
+  if(F.q){ const q=F.q.toLowerCase(); const hay=[l.lot,l.variete,l.clone,l.pg,e.greffeur,e.machine,e.typeG].filter(Boolean).join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+  return true; }
+function grefSum(rows){ const n=rows.length, q=rows.reduce((a,r)=>a+(Number(r.l.qte)||0),0), px=Math.round(rows.reduce((a,r)=>a+(Number(r.l.palox)||0),0)*100)/100, c=rows.reduce((a,r)=>a+(r.e&&r.e.casse>0?Number(r.e.casse):0),0);
+  return plural(n,'lot','lots','lote','lotes')+' · '+fmtN(q)+' '+L('plants','plantas')+(px?' · '+fmtN(px)+' palox':'')+(c?' · '+fmtN(c)+' '+L('casses','quiebres')+' ('+pct(c/(q+c))+')':''); }
 function tabGreffage(ch, body){
   const lots=ch.lots||[]; const ed=S.grefEdit&&S.grefEdit.chId===ch.id?S.grefEdit:null;
   const tq=lots.reduce((a,l)=>a+(l.qte||0),0), tp=Math.round(lots.reduce((a,l)=>a+(Number(l.palox)||0),0)*100)/100;
   const tc=lots.reduce((a,l)=>{ const e=grefOf(ch.id,l.lot); return a+(e&&e.casse>0?e.casse:0); },0);
+  S.grefF=S.grefF&&S.grefF.chId===ch.id?S.grefF:{chId:ch.id}; const F=S.grefF;
+  S.grefSel=S.grefSel&&S.grefSel.chId===ch.id?S.grefSel:{chId:ch.id, set:[]}; const SEL=new Set(S.grefSel.set.filter(x=>lots.some(l=>String(l.lot)===x)));
+  const rows=grefRows(ch), fr=rows.filter(r=>grefMatch(r,F)); const active=['v','pg','d','t','m','g','info','q'].some(k=>F[k]);
+  const sel=rows.filter(r=>SEL.has(String(r.l.lot)));
+  const selH=(id,lab,opts,fmt)=>opts.length>1||F[id]?`<div class="field"><label for="gq-${id}">${esc(lab)}</label><select id="gq-${id}"><option value="">${esc(L('Tous','Todos'))}</option>${opts.map(o=>`<option value="${esc(o)}"${String(F[id]||'')===String(o)?' selected':''}>${esc(fmt?fmt(o):o)}</option>`).join('')}</select></div>`:'';
+  const filtHTML=lots.length?`<div class="gfilt">
+      <div class="field"><label for="gq-q">${esc(L('Rechercher','Buscar'))}</label><input id="gq-q" type="search" value="${esc(F.q||'')}" placeholder="${esc(L('N° de lot, variété, greffeur…','N° de lote, variedad, injertador…'))}"></div>
+      <div class="two">${selH('v',L('Variété','Variedad'),grefOpts(rows,r=>r.l.variete))}${selH('pg',L('Porte-greffe','Portainjerto'),grefOpts(rows,r=>r.l.pg))}</div>
+      <div class="two">${selH('d',L('Date de greffage','Fecha de injerto'),grefOpts(rows,r=>r.e&&r.e.date),isoFr)}${selH('g',L('Greffeur','Injertador'),grefOpts(rows,r=>grefGreffeurs(r.e)))}</div>
+      <div class="two">${selH('t',L('Type de greffe','Tipo de injerto'),grefOpts(rows,r=>r.e&&r.e.typeG),v=>grefVal(GREF_SECTIONS[0].fields[1],v))}${selH('m',L('Machine','Máquina'),grefOpts(rows,r=>r.e&&r.e.machine))}</div>
+      <div class="field"><span class="lab">${esc(L('Infos de greffage','Información de injerto'))}</span><div class="seg" id="gq-info"><button type="button" data-v="" aria-pressed="${!F.info}">${esc(L('Tous','Todos'))}</button><button type="button" data-v="oui" aria-pressed="${F.info==='oui'}">${esc(L('Notées','Anotadas'))}</button><button type="button" data-v="non" aria-pressed="${F.info==='non'}">${esc(L('Pas encore','Todavía no'))}</button></div></div>
+      ${active?`<div class="sumbox"><b>${esc(L('Lots filtrés : ','Lotes filtrados: '))}</b>${esc(grefSum(fr))}</div><button class="linkbtn" type="button" id="gq-x">${esc(L('Effacer les filtres','Borrar los filtros'))}</button>`:''}
+      <div class="row"><button class="ghost" type="button" id="gs-all">${esc(active?L('Sélectionner les lots filtrés','Seleccionar los lotes filtrados'):L('Sélectionner tous les lots','Seleccionar todos los lotes'))}</button>${SEL.size?`<button class="ghost" type="button" id="gs-x">${esc(L('Vider la sélection','Vaciar la selección'))}</button>`:''}</div>
+      <span class="ex">${esc(L('Touche « Additionner » sur chaque lot pour faire la somme de plusieurs lots.','Toca « Sumar » en cada lote para sumar varios lotes.'))}</span>
+    </div>`:'';
   body.innerHTML=`
     <p class="note">${esc(L("Note ici chaque lot au moment du greffage : il devient un lot de la chauffe (plus besoin d'Excel). Les infos de greffage, de paraffinage et de préparation des bois sont facultatives et vont dans le registre PDF.","Anota aquí cada lote en el momento del injerto: pasa a ser un lote de la calefacción (sin necesidad de Excel). La información de injerto, parafinado y preparación de la madera es opcional y va al registro PDF."))}</p>
     <div class="card" style="gap:6px"><div class="hhead"><h3>${esc(L('Lots greffés','Lotes injertados'))}</h3><span class="mono">${lots.length} ${esc(L('lots','lotes'))}</span></div>
       <div class="rem">${esc(fmtN(tq)+' '+L('plants greffés','plantas injertadas')+(tp?' · '+fmtN(tp)+' palox':''))}${tc?' · '+esc(fmtN(tc)+' '+L('casses','quiebres')+' ('+pct(tc/(tq+tc))+')'):''}</div>
       ${ed?'':`<button class="primary" type="button" id="g-new">${esc(L('+ Ajouter un lot greffé','+ Agregar un lote injertado'))}</button>`}</div>
     <div id="g-form"></div>
-    <div class="list" id="g-list"></div>`;
+    ${lots.length?fold('gfilt', esc(L('Filtrer et additionner les lots','Filtrar y sumar los lotes')), active?L('filtre actif','filtro activo'):'', filtHTML, active):''}
+    ${SEL.size?`<div class="gselbar" id="g-selbar"><div><b>${esc(L('Sélection : ','Selección: '))}</b>${esc(grefSum(sel))}</div><div class="hint">${esc(sel.map(r=>L('lot ','lote ')+r.l.lot).join(', '))}</div><button class="linkbtn" type="button" id="gs-x2" style="justify-self:start">${esc(L('Vider la sélection','Vaciar la selección'))}</button></div>`:''}
+    ${active&&lots.length?`<p class="note" style="margin:0 2px">${esc(fr.length+' / '+lots.length+' '+L('lots affichés (filtre actif)','lotes mostrados (filtro activo)'))}</p>`:''}
+    <div class="list" id="g-list"></div>${SEL.size?'<div style="height:110px"></div>':''}`;
   if($('g-new')) $('g-new').onclick=()=>{ S.grefEdit={chId:ch.id, lot:null}; renderChauffe(); };
   if(ed) grefFormRender(ch, ed);
+  // filtres
+  const keep=()=>{ const y=window.scrollY; renderChauffe(); window.scrollTo({top:y}); };
+  ['v','pg','d','t','m','g'].forEach(k=>{ const el=$('gq-'+k); if(el) el.onchange=()=>{ F[k]=el.value||''; keep(); }; });
+  if($('gq-q')){ let tm=null; $('gq-q').oninput=()=>{ clearTimeout(tm); tm=setTimeout(()=>{ F.q=$('gq-q').value.trim(); keep(); setTimeout(()=>{ const i=$('gq-q'); if(i){ i.focus(); const n=i.value.length; try{ i.setSelectionRange(n,n); }catch(e){} } },0); },350); }; }
+  if($('gq-info')) $('gq-info').querySelectorAll('button').forEach(b=>b.onclick=()=>{ F.info=b.dataset.v; keep(); });
+  if($('gq-x')) $('gq-x').onclick=()=>{ S.grefF={chId:ch.id}; keep(); };
+  const saveSel=()=>{ S.grefSel={chId:ch.id, set:[...SEL]}; keep(); };
+  if($('gs-all')) $('gs-all').onclick=()=>{ fr.forEach(r=>SEL.add(String(r.l.lot))); saveSel(); };
+  if($('gs-x')) $('gs-x').onclick=()=>{ SEL.clear(); saveSel(); };
+  if($('gs-x2')) $('gs-x2').onclick=()=>{ SEL.clear(); saveSel(); };
   const el=$('g-list');
   if(!lots.length){ el.innerHTML=`<div class="item empty">${esc(L('Aucun lot pour l\'instant. Touche « + Ajouter un lot greffé », ou importe un fichier Excel dans Infos → Modifier.','Ningún lote por ahora. Toca « + Agregar un lote injertado », o importa un archivo Excel en Infos → Modificar.'))}</div>`; return; }
-  lots.forEach(l=>{ if(ed && ed.lot!=null && String(ed.lot)===String(l.lot)) return; const e=grefOf(ch.id,l.lot); const d=document.createElement('div'); d.className='item';
+  if(!fr.length) el.innerHTML=`<div class="item empty">${esc(L('Aucun lot ne correspond aux filtres.','Ningún lote corresponde a los filtros.'))}</div>`;
+  fr.forEach(({l,e})=>{ if(ed && ed.lot!=null && String(ed.lot)===String(l.lot)) return; const d=document.createElement('div'); d.className='item'+(SEL.has(String(l.lot))?' gsel':'');
     const cp=cassePct(l,e);
     d.innerHTML=`<div class="hhead"><span class="d">${esc(L('Lot ','Lote ')+l.lot)}${l.variete||l.pg?' · '+esc([l.variete+(l.clone?' cl. '+l.clone:''),l.pg].filter(Boolean).join(' / ')):''}</span><span class="mono">${l.qte?esc(fmtN(l.qte))+' pl.':''}${l.palox!=null&&l.palox!==''?' · '+esc(fmtN(l.palox))+' palox':''}</span></div>
       ${e?`<div class="rem">${esc([e.date?isoFr(e.date):'', e.typeG?grefVal(GREF_SECTIONS[0].fields[1],e.typeG):'', e.machine, e.greffeur, cp!=null?L('casse ','quiebre ')+pct(cp):''].filter(Boolean).join(' · '))}</div>${grefHas(e,'p')?`<div class="hint">${esc(grefSecText(e,'p'))}</div>`:''}${grefHas(e,'b')?`<div class="hint">${esc(grefSecText(e,'b'))}</div>`:''}<div class="who">${esc(authorName(e))}</div>`:`<div class="rem">${esc(L('Infos de greffage pas encore notées.','Información de injerto aún no anotada.'))}</div>`}`;
+    const row=document.createElement('div'); row.className='row';
+    const sb=document.createElement('button'); sb.type='button'; sb.className='ghost gaddbtn'; const on=SEL.has(String(l.lot)); sb.setAttribute('aria-pressed',on); sb.textContent=on?L('✓ Additionné','✓ Sumado'):L('+ Additionner','+ Sumar');
+    sb.onclick=()=>{ const k=String(l.lot); if(SEL.has(k)) SEL.delete(k); else SEL.add(k); saveSel(); };
     const b=document.createElement('button'); b.type='button'; b.className='ghost'; b.textContent=L('Modifier','Modificar'); b.onclick=()=>{ S.grefEdit={chId:ch.id, lot:String(l.lot)}; renderChauffe(); };
-    d.appendChild(b); el.appendChild(d); });
+    row.append(sb,b); d.appendChild(row); el.appendChild(d); });
 }
 function grefFieldHTML(f,v){ const id='gf-'+f[0], lab=esc(L(f[2],f[3]));
   if(f[1]==='seg') return `<div class="field"><span class="lab">${lab}</span><div class="seg" id="${id}" data-v="${esc(v||'')}">${f[4].map(o=>`<button type="button" data-v="${esc(o[0])}" aria-pressed="${v===o[0]}">${esc(L(o[0],o[1]))}</button>`).join('')}</div></div>`;
