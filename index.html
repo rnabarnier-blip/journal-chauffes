@@ -334,6 +334,12 @@ body.phone .gselbar{bottom:calc(env(safe-area-inset-bottom,0px) + 122px)}body.si
 .frdur{font:700 16px var(--f-body);border-radius:8px;padding:6px 10px;justify-self:start}
 .frdur.in{background:var(--accent-soft);color:var(--accent)}.frdur.out{background:var(--sunk);color:var(--muted)}
 .item.frin{border-left:4px solid var(--accent)}
+.dsgrid{display:grid;gap:8px}
+.dsrow{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;background:var(--sunk);border-radius:10px;padding:8px 10px}
+.dsrow label{display:flex;align-items:center;gap:8px;font-weight:600}.dsrow input{width:90px}
+.dsout{font-weight:600;color:var(--muted)}.dsout.err{color:var(--bad)}
+.dsline{display:flex;justify-content:space-between;gap:10px;background:var(--sunk);border-radius:8px;padding:6px 10px;font-size:15px}
+#ds-lots button small{font-weight:500;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -354,7 +360,7 @@ body.phone .gselbar{bottom:calc(env(safe-area-inset-bottom,0px) + 122px)}body.si
    Chaque note = une « entrée » avec id unique, auteur, majLe et
    éventuellement supprime:true (pour que les suppressions se partagent).
    ==================================================================== */
-const APP_VERSION = '2.31.0';
+const APP_VERSION = '2.32.0';
 const appVer = () => APP_VERSION;
 const APP_NAME = 'Journal de chauffes';
 const EXPORT_FORMAT = 'journal-chauffes';
@@ -1992,6 +1998,7 @@ function bindDecCard(ch){
         <div class="field"><label for="dec-pr">${esc(L('Palox re-remplis','Palox rellenados'))}</label><input id="dec-pr" class="num" type="text" inputmode="decimal" value="${e&&e.pRem!=null?esc(fmtN(e.pRem)):''}" placeholder="N°"></div></div>
         <span class="ex">${esc(L('Ex. : 4 décaissés, 3,5 re-remplis → 88 % gardés.','Ej.: 4 vaciados, 3,5 rellenados → 88 % conservados.'))}</span>
         <div class="sumbox" id="dec-calc"></div>
+        <div class="field"><label for="dec-pf">${esc(L('Dont palox mis au frigo','De ellos, palox al frigorífico'))} <span class="hint">${esc(L('(facult.)','(opc.)'))}</span></label><input id="dec-pf" class="num" type="text" inputmode="decimal" value="${e&&e.pFrigo?esc(fmtN(e.pFrigo)):''}" placeholder="0"><span class="ex" id="dec-pfx">${esc(L('Le reste va en acclimatation dehors.','El resto va a aclimatación afuera.'))}</span></div>
         <div class="two"><div class="field"><label for="dec-j">${esc(L('Jour de décaissage','Día de desencajonado'))}</label><select id="dec-j">${Array.from({length:ch.duree+3},(_,i)=>`<option value="${i+1}"${i+1===jDef?' selected':''}>J${i+1}${ch.debut?' · '+esc(dayShort(ch,i+1)):''}</option>`).join('')}</select></div>
         <div class="field"><label for="dec-pl">${esc(L('Place dans la chambre','Lugar en la cámara'))} <span class="hint">${esc(L('(facult.)','(opc.)'))}</span></label><input id="dec-pl" type="text" list="dec-places" value="${esc(e&&e.place||'')}" placeholder="${esc(L('Où était le palox','Dónde estaba el palox'))}"><datalist id="dec-places">${places.map(p=>`<option value="${esc(p)}"></option>`).join('')}</datalist></div></div>
         <span class="ex">${esc(L('Ex. : près de la porte, fond à droite, près de « Palox 3 haut ». Garde toujours les mêmes mots pour pouvoir comparer.','Ej.: cerca de la puerta, fondo a la derecha, cerca de « Palox 3 arriba ». Usa siempre las mismas palabras para poder comparar.'))}</span>
@@ -2001,18 +2008,20 @@ function bindDecCard(ch){
         <div class="status" id="dec-st"></div>`;
       el.appendChild(d);
       const calc=()=>{ const a=num($('dec-pd').value), b=num($('dec-pr').value); $('dec-calc').innerHTML=a>0&&b!=null&&b>=0?`<b>${pct(b/a)}</b> ${esc(L('de palox gardés','de palox conservados'))}${b>a?' · '+esc(L('plus de palox re-remplis que décaissés : les plants ont été moins serrés ?','más palox rellenados que vaciados: ¿plantas menos apretadas?')):''}`:''; };
-      $('dec-pd').oninput=calc; $('dec-pr').oninput=calc; calc();
+      const pfx=()=>{ const b=num($('dec-pr').value), f=num($('dec-pf').value)||0; $('dec-pfx').textContent=b!=null?(f>b?L('Plus de palox au frigo que de palox re-remplis.','Más palox en el frigorífico que palox rellenados.'):'→ '+fmtN(Math.round(f*100)/100)+' '+L('au frigo','al frigorífico')+' · '+fmtN(Math.round((b-f)*100)/100)+' '+L('en acclimatation dehors','en aclimatación afuera')):L('Le reste va en acclimatation dehors.','El resto va a aclimatación afuera.'); };
+      $('dec-pd').oninput=calc; $('dec-pr').oninput=()=>{ calc(); pfx(); }; $('dec-pf').oninput=pfx; calc(); pfx();
       $('dec-x').onclick=()=>{ S.decEdit=null; renderChauffe(); };
       if($('dec-del')){ let c=false; $('dec-del').onclick=async()=>{ if(!c){ c=true; $('dec-del').textContent=L('Toucher encore pour supprimer','Tocar otra vez para eliminar'); return; } await removeEntry(e); S.decEdit=null; toast(L('Décaissage supprimé.','Desencajonado eliminado.')); renderChauffe(); }; }
       $('dec-ok').onclick=async()=>{ const st=$('dec-st'); const a=num($('dec-pd').value), b=num($('dec-pr').value);
         if(!(a>0)){ st.textContent=L('Indique le nombre de palox décaissés.','Indica el número de palox vaciados.'); st.className='status err'; return; }
         if(b==null||b<0){ st.textContent=L('Indique le nombre de palox re-remplis (0 si aucun).','Indica el número de palox rellenados (0 si ninguno).'); st.className='status err'; return; }
-        const ent=Object.assign({}, e||{id:'dec:'+ch.id+':'+l.lot, type:'decaisse', chauffeId:ch.id, lot:l.lot, creeLe:nowIso()}, {variete:l.variete, pg:l.pg, pDec:Math.round(a*100)/100, pRem:Math.round(b*100)/100, jour:Number($('dec-j').value), place:$('dec-pl').value.trim(), remarque:$('dec-rem').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom});
+        const pf=num($('dec-pf').value)||0; if(pf<0||pf>b){ st.textContent=L('Le nombre de palox au frigo doit être entre 0 et le nombre de palox re-remplis.','El número de palox en el frigorífico debe estar entre 0 y el número de palox rellenados.'); st.className='status err'; return; }
+        const ent=Object.assign({}, e||{id:'dec:'+ch.id+':'+l.lot, type:'decaisse', chauffeId:ch.id, lot:l.lot, creeLe:nowIso()}, {variete:l.variete, pg:l.pg, pDec:Math.round(a*100)/100, pRem:Math.round(b*100)/100, pFrigo:Math.round(pf*100)/100, jour:Number($('dec-j').value), place:$('dec-pl').value.trim(), remarque:$('dec-rem').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom});
         delete ent.supprime;
-        try{ await saveEntry(ent); S.decEdit=null; toast(L('Lot ','Lote ')+l.lot+L(' : ',': ')+pct(decRate(ent))+L(' de palox gardés.',' de palox conservados.')); renderChauffe(); }catch(x){ st.textContent=L('Enregistrement impossible.','No se pudo guardar.'); st.className='status err'; } };
+        try{ await saveEntry(ent); await syncFrigoFromDec(ch,ent); S.decEdit=null; toast(L('Lot ','Lote ')+l.lot+L(' : ',': ')+pct(decRate(ent))+L(' de palox gardés.',' de palox conservados.')); renderChauffe(); }catch(x){ st.textContent=L('Enregistrement impossible.','No se pudo guardar.'); st.className='status err'; } };
       setTimeout(()=>{ d.scrollIntoView({block:'center'}); const f=$('dec-pr'); if(f) f.focus(); },30);
       return; }
-    d.innerHTML=head+(e?`<div class="raterow">${rateBar(Math.min(1,decRate(e)||0))}<span class="rv mono">${pct(decRate(e))}</span></div><div class="rem">${esc(fmtN(e.pDec)+' → '+fmtN(e.pRem)+' palox'+(e.jour?' · J'+e.jour:'')+(e.place?' · '+e.place:''))}${e.remarque?' · '+esc(e.remarque):''}</div><div class="who">${esc(authorName(e))}</div>`:`<div class="rem">${esc(L('Pas encore noté.','Aún no anotado.'))}</div>`);
+    d.innerHTML=head+(e?`<div class="raterow">${rateBar(Math.min(1,decRate(e)||0))}<span class="rv mono">${pct(decRate(e))}</span></div><div class="rem">${esc(fmtN(e.pDec)+' → '+fmtN(e.pRem)+' palox'+(e.jour?' · J'+e.jour:'')+(e.place?' · '+e.place:''))}${e.remarque?' · '+esc(e.remarque):''}</div>${decFrigo(e)?`<div class="dsline"><span>${esc(L('Frigo','Frigorífico'))}</span><span><b>${esc(fmtN(decFrigo(e)))}</b> · ${esc(L('dehors ','afuera ')+fmtN(decDehors(e)))}</span></div>`:''}<div class="who">${esc(authorName(e))}</div>`:`<div class="rem">${esc(L('Pas encore noté.','Aún no anotado.'))}</div>`);
     const b=document.createElement('button'); b.type='button'; b.className='ghost'; b.textContent=e?L('Modifier','Modificar'):L('Noter le décaissage','Anotar el desencajonado');
     b.onclick=()=>{ S.decEdit={chId:ch.id, lot:l.lot}; S.decOpen=ch.id; renderChauffe(); };
     d.appendChild(b); el.appendChild(d); });
@@ -2331,6 +2340,7 @@ function tabFrigo(ch, body){
     <p class="note">${esc(L("Suivi des plants mis au frigo (essai IFV) : note l'entrée et la sortie de chaque palox, l'app calcule le temps passé. Note aussi la température du frigo.","Seguimiento de las plantas puestas en el frigorífico (ensayo IFV): anota la entrada y la salida de cada palox, la app calcula el tiempo. Anota también la temperatura del frigorífico."))}</p>
     <div class="card" style="gap:8px" id="fr-card">
       <div class="hhead"><h3>${esc(L('Palox au frigo','Palox en el frigorífico'))}</h3><span class="mono">${F.inn.length} ${esc(L('dedans','adentro'))} · ${F.out.length} ${esc(L('sortis','salidos'))}</span></div>
+      ${(()=>{ const fd=decLots(ch).filter(l=>l.d&&decFrigo(l.d)); return fd.length?`<div class="sumbox">${esc(L('Depuis le décaissage : ','Desde el desencajonado: ')+fd.map(l=>L('lot ','lote ')+l.lot+' → '+fmtN(decFrigo(l.d))+' palox').join(' · '))}</div>`:''; })()}
       <div class="rem">${esc((F.inn.length?plural(F.inn.length,'palox au frigo','palox au frigo','palox en el frigorífico','palox en el frigorífico')+(F.plIn?' ('+fmtN(F.plIn)+' '+L('plants','plantas')+')':''):L('Aucun palox au frigo en ce moment.','Ningún palox en el frigorífico ahora.'))+(F.avg!=null?' · '+L('durée moyenne des palox sortis : ','duración promedio de los palox salidos: ')+durTxt(F.avg):''))}</div>
       ${ed&&ed.mode==='in'?frigoInFormHTML(ch,ed):`<button class="primary" type="button" id="fr-new">${esc(L('+ Entrée de palox au frigo','+ Entrada de palox al frigorífico'))}</button>`}
       ${F.E.length?`<div class="seg" id="fr-view"><button type="button" data-v="in" aria-pressed="${S.frView==='in'}">${esc(L('Au frigo','En el frigorífico'))} (${F.inn.length})</button><button type="button" data-v="out" aria-pressed="${S.frView==='out'}">${esc(L('Sortis','Salidos'))} (${F.out.length})</button><button type="button" data-v="all" aria-pressed="${S.frView==='all'}">${esc(L('Tous','Todos'))} (${F.E.length})</button></div>`:''}
@@ -2361,7 +2371,7 @@ function tabFrigo(ch, body){
     d.innerHTML=`<div class="hhead"><span class="d">${esc(L('Palox ','Palox ')+e.palox)}${e.lot?' · '+esc(L('lot ','lote ')+e.lot):''}</span><span class="mono">${e.nb?esc(fmtN(e.nb))+' pl.':''}</span></div>
       <div class="rem">${esc(L('Entré le ','Entró el ')+dtFr(e.dIn))}${e.dOut?esc(' · '+L('sorti le ','salió el ')+dtFr(e.dOut)):''}</div>
       <div class="frdur ${e.dOut?'out':'in'}">${esc(e.dOut?L('Sorti après ','Salió después de ')+durTxt(h):L('Au frigo depuis ','En el frigorífico desde hace ')+durTxt(h))}</div>
-      ${e.remIn?`<div class="hint">${esc(L('Entrée : ','Entrada: ')+e.remIn)}</div>`:''}${e.remOut?`<div class="hint">${esc(L('Sortie : ','Salida: ')+e.remOut)}</div>`:''}<div class="who">${esc(authorName(e))}</div>`;
+      ${e.fromDec?`<div class="hint">${esc(L('Venu du décaissage du lot ','Viene del desencajonado del lote ')+e.lot+(e.dInAuto!==false?L(' (heure d\'entrée à corriger si besoin)',' (hora de entrada a corregir si hace falta)'):''))}</div>`:''}${e.remIn&&!e.fromDec?`<div class="hint">${esc(L('Entrée : ','Entrada: ')+e.remIn)}</div>`:''}${e.remOut?`<div class="hint">${esc(L('Sortie : ','Salida: ')+e.remOut)}</div>`:''}<div class="who">${esc(authorName(e))}</div>`;
     const row=document.createElement('div'); row.className='row';
     if(!e.dOut){ const o=document.createElement('button'); o.type='button'; o.className='primary'; o.textContent=L('Sortie du frigo','Salida del frigorífico'); o.onclick=()=>{ S.frEdit={chId:ch.id, mode:'out', id:e.id}; keep(); }; row.appendChild(o); }
     const m=document.createElement('button'); m.type='button'; m.className='ghost'; m.textContent=L('Modifier','Modificar'); m.onclick=()=>{ S.frEdit={chId:ch.id, mode:'edit', id:e.id}; keep(); }; row.appendChild(m);
@@ -2409,7 +2419,7 @@ function bindFrigoForms(ch,F){ const keep=()=>{ const y=window.scrollY; renderCh
       const dIn=$('fi-d').value; if(!dIn) return err(L("Indique la date d'entrée.","Indica la fecha de entrada."));
       const dOut=$('fi-o')?$('fi-o').value:''; if(dOut&&dOut<dIn) return err(L("La sortie est avant l'entrée.","La salida es antes de la entrada."));
       const base={lot:$('fi-l').value.trim(), nb, dIn, date:dIn.slice(0,10), remIn:$('fi-r').value.trim(), auteurId:S.me.id, auteurNom:S.me.nom};
-      if(e){ if(ps.length>1) return err(L('Un seul numéro de palox ici.','Un solo número de palox aquí.')); const n=Object.assign({},e,base,{palox:ps[0]}); if($('fi-o')) n.dOut=dOut; delete n.supprime; await saveEntry(n); toast(L('Palox modifié.','Palox modificado.')); }
+      if(e){ if(ps.length>1) return err(L('Un seul numéro de palox ici.','Un solo número de palox aquí.')); const n=Object.assign({},e,base,{palox:ps[0]}); if(e.fromDec&&dIn!==e.dIn) n.dInAuto=false; if($('fi-o')) n.dOut=dOut; delete n.supprime; await saveEntry(n); toast(L('Palox modifié.','Palox modificado.')); }
       else { const dup=ps.filter(p=>F.inn.some(x=>String(x.palox)===p)); if(dup.length) return err(L('Déjà au frigo : palox ','Ya en el frigorífico: palox ')+dup.join(', '));
         await saveEntries(ps.map(p=>Object.assign({id:'fr-'+uid(), type:'frigo', chauffeId:ch.id, palox:p, creeLe:nowIso()},base))); toast(ps.length>1?ps.length+L(' palox entrés au frigo.',' palox entraron al frigorífico.'):L('Palox ','Palox ')+ps[0]+L(' entré au frigo.',' entró al frigorífico.')); }
       S.frEdit=null; S.frView='in'; keep(); };
@@ -2434,15 +2444,60 @@ function frigoSummaryLines(ch){ const E=frigoEnts(ch), T=frigoTemps(ch); if(!E.l
   T.forEach(r=>out.push('  '+isoFr(r.date)+(r.heure?' '+fmtH(r.heure):'')+' · '+fmtN(r.t)+' °C'+(r.hum!=null?' · HR '+fmtN(r.hum)+' %':'')+(frigoTOut(ch,r.t)?' ⚠':'')+(r.remarque?' · '+r.remarque:'')));
   return out; }
 
+/* Répartition des palox re-remplis : frigo / acclimatation dehors. Les palox mis au frigo deviennent des entrées de l'onglet Frigo. */
+const decFrigo=e=>e&&e.pFrigo>0?Number(e.pFrigo):0;
+const decDehors=e=>e&&e.pRem!=null?Math.max(0,Math.round((e.pRem-decFrigo(e))*100)/100):null;
+function decDateIso(ch,e){ const j=e&&e.jour; const iso=j&&ch.debut?isoOfDay(ch,j):null; return (iso||todayIso())+'T08:00'; }
+async function syncFrigoFromDec(ch,e){ const want=Math.ceil(decFrigo(e)); const auto=entriesOf(ch.id,'frigo').filter(x=>x.fromDec===e.id).sort((a,b)=>(a.idx||0)-(b.idx||0)); const ch2=[]; const dIn=decDateIso(ch,e);
+  for(let i=1;i<=want;i++){ const x=auto.find(a=>a.idx===i); const half=i===want&&decFrigo(e)%1?L(' (demi-palox)',' (medio palox)'):'';
+    if(!x) ch2.push({id:'fr-'+e.id.replace(/[^a-z0-9]/gi,'')+'-'+i+'-'+uid().slice(0,4), type:'frigo', chauffeId:ch.id, fromDec:e.id, idx:i, palox:e.lot+'-'+i, lot:e.lot, dIn, date:dIn.slice(0,10), dInAuto:true, remIn:L('Depuis le décaissage','Desde el desencajonado')+half, auteurId:S.me.id, auteurNom:S.me.nom, creeLe:nowIso()});
+    else if(x.dInAuto!==false&&x.dIn!==dIn) ch2.push(Object.assign({},x,{dIn, date:dIn.slice(0,10)})); }
+  auto.filter(a=>a.idx>want&&!a.dOut).forEach(a=>ch2.push(Object.assign({},a,{supprime:true})));
+  if(ch2.length) await saveEntries(ch2); }
+function decSplitCardHTML(ch){ const done=decLots(ch).filter(l=>l.d&&l.d.pRem>0); if(!done.length) return '';
+  const sel=S.decSplit&&S.decSplit.chId===ch.id?S.decSplit:null; const tf=done.reduce((a,l)=>a+decFrigo(l.d),0), tr=done.reduce((a,l)=>a+l.d.pRem,0);
+  return `<div class="card" style="gap:10px" id="ds-card"><div class="hhead"><h3>${esc(L('Frigo ou acclimatation dehors','Frigorífico o aclimatación afuera'))}</h3><span class="mono">${esc(fmtN(tf)+' / '+fmtN(tr)+' palox')}</span></div>
+    <p class="note">${esc(L("Pour chaque lot décaissé, indique combien de palox re-remplis vont au frigo. Le reste va en acclimatation dehors. Les palox mis au frigo apparaissent tout seuls dans l'onglet Frigo.","Para cada lote desencajonado, indica cuántos palox rellenados van al frigorífico. El resto va a aclimatación afuera. Los palox puestos en el frigorífico aparecen solos en la pestaña Frigo."))}</p>
+    <div class="rem">${esc(L('Total : ','Total: ')+fmtN(tf)+' '+L('palox au frigo','palox al frigorífico')+' · '+fmtN(Math.round((tr-tf)*100)/100)+' '+L('dehors','afuera'))}</div>
+    ${sel?`<span class="lab">${esc(L('Touche les lots à répartir','Toca los lotes a repartir'))}</span><div class="plkinds" id="ds-lots">${done.map(l=>`<button type="button" data-lot="${esc(l.lot)}" aria-pressed="${sel.lots.includes(l.lot)}">${esc(L('Lot ','Lote ')+l.lot)} <small>(${esc(fmtN(l.d.pRem))} palox)</small></button>`).join('')}</div>
+      <button class="linkbtn" type="button" id="ds-all">${esc(L('Tous les lots décaissés','Todos los lotes desencajonados'))}</button>
+      ${sel.lots.length?`<div class="dsgrid">${done.filter(l=>sel.lots.includes(l.lot)).map(l=>`<div class="dsrow"><b>${esc(L('Lot ','Lote ')+l.lot)}</b><span class="hint">${esc(fmtN(l.d.pRem)+' '+L('palox re-remplis','palox rellenados'))}</span><label>${esc(L('Au frigo','Al frigorífico'))} <input class="num dsin" data-lot="${esc(l.lot)}" data-max="${l.d.pRem}" type="text" inputmode="decimal" value="${decFrigo(l.d)?esc(fmtN(decFrigo(l.d))):''}" placeholder="0"></label><span class="dsout" data-lot="${esc(l.lot)}"></span></div>`).join('')}</div>
+      <div class="sumbox" id="ds-tot"></div>
+      <div class="row"><button class="ghost" type="button" id="ds-half">${esc(L('Moitié au frigo','La mitad al frigorífico'))}</button></div>`:''}
+      <div class="row"><button class="primary" type="button" id="ds-ok"${sel.lots.length?'':' disabled'}>${esc(L('Enregistrer la répartition','Guardar la repartición'))}</button><button class="ghost" type="button" id="ds-x">${esc(L('Annuler','Cancelar'))}</button></div><div class="status" id="ds-st"></div>`
+    :`<div class="list">${done.map(l=>`<div class="dsline"><span>${esc(L('Lot ','Lote ')+l.lot)}</span><span>${decFrigo(l.d)?'<b>'+esc(fmtN(decFrigo(l.d))+' '+L('au frigo','al frigorífico'))+'</b> · ':''}${esc(fmtN(decDehors(l.d))+' '+L('dehors','afuera'))}</span></div>`).join('')}</div>
+      <button class="primary" type="button" id="ds-open">${esc(L('Répartir des lots entre frigo et dehors','Repartir lotes entre frigorífico y afuera'))}</button>`}
+  </div>`; }
+function bindDecSplit(ch){ if(!$('ds-card')) return; const keep=()=>{ const y=window.scrollY; renderChauffe(); window.scrollTo({top:y}); };
+  const done=decLots(ch).filter(l=>l.d&&l.d.pRem>0);
+  if($('ds-open')) $('ds-open').onclick=()=>{ S.decSplit={chId:ch.id, lots:[]}; keep(); };
+  if(!S.decSplit||S.decSplit.chId!==ch.id) return; const sel=S.decSplit;
+  const vals=()=>{ const o={}; document.querySelectorAll('.dsin').forEach(i=>o[i.dataset.lot]=i.value); return o; };
+  const rerender=()=>{ sel.vals=Object.assign(sel.vals||{},vals()); keep(); };
+  $('ds-lots').querySelectorAll('button').forEach(b=>b.onclick=()=>{ const k=b.dataset.lot; sel.lots=sel.lots.includes(k)?sel.lots.filter(x=>x!==k):sel.lots.concat(k); rerender(); });
+  $('ds-all').onclick=()=>{ sel.lots=done.map(l=>l.lot); rerender(); };
+  document.querySelectorAll('.dsin').forEach(i=>{ if(sel.vals&&sel.vals[i.dataset.lot]!=null) i.value=sel.vals[i.dataset.lot]; });
+  const upd=()=>{ let f=0,r=0,bad=false; document.querySelectorAll('.dsin').forEach(i=>{ const mx=Number(i.dataset.max), v=num(i.value)||0; const o=document.querySelector('.dsout[data-lot="'+i.dataset.lot+'"]'); if(v<0||v>mx){ bad=true; o.textContent=L('max. ','máx. ')+fmtN(mx); o.className='dsout err'; } else { o.textContent='→ '+fmtN(Math.round((mx-v)*100)/100)+' '+L('dehors','afuera'); o.className='dsout'; } f+=v; r+=mx; });
+    if($('ds-tot')) $('ds-tot').innerHTML=`<b>${esc(fmtN(Math.round(f*100)/100))}</b> ${esc(L('palox au frigo','palox al frigorífico'))} · <b>${esc(fmtN(Math.round((r-f)*100)/100))}</b> ${esc(L('dehors','afuera'))} ${esc(L('(sur ','(de ')+fmtN(r)+' palox)')}`; return !bad; };
+  document.querySelectorAll('.dsin').forEach(i=>i.addEventListener('input',upd)); upd();
+  if($('ds-half')) $('ds-half').onclick=()=>{ document.querySelectorAll('.dsin').forEach(i=>{ i.value=fmtN(Math.floor(Number(i.dataset.max)/2*2)/2); }); upd(); };
+  $('ds-x').onclick=()=>{ S.decSplit=null; keep(); };
+  $('ds-ok').onclick=async()=>{ if(!upd()){ $('ds-st').textContent=L('Un lot a plus de palox au frigo que de palox re-remplis.','Un lote tiene más palox en el frigorífico que palox rellenados.'); $('ds-st').className='status err'; return; }
+    const ins=[...document.querySelectorAll('.dsin')]; const ents=[];
+    for(const i of ins){ const l=done.find(x=>x.lot===i.dataset.lot); const v=num(i.value)||0; const e=Object.assign({},l.d,{pFrigo:Math.round(v*100)/100}); ents.push(e); }
+    await saveEntries(ents); for(const e of ents) await syncFrigoFromDec(ch,e);
+    S.decSplit=null; toast(L('Répartition enregistrée : ','Repartición guardada: ')+fmtN(ents.reduce((a,e)=>a+e.pFrigo,0))+' '+L('palox au frigo.','palox al frigorífico.')); keep(); };
+}
 function tabDecaissage(ch, body){
   body.innerHTML=`<div id="c-dec" class="tabpart"></div><h3 class="secttl">${esc(L('Acclimatation après décaissage','Aclimatación después del desencajonado'))}</h3><div id="c-acc" class="tabpart"></div>`;
-  $('c-dec').innerHTML=decCardHTML(ch); bindDecCard(ch);
+  $('c-dec').innerHTML=decCardHTML(ch)+decSplitCardHTML(ch); bindDecCard(ch); bindDecSplit(ch);
   tabAcclim(ch, $('c-acc'), 'apres');
 }
 function decRegistreHTML(ch){
   const done=decLots(ch).filter(l=>l.d); if(!done.length) return '';
   const lw=lotsWithBilan(ch); const ag=decAgg(done);
-  return `<section><h3>${esc(L('Décaissage (sortie de chauffe)','Desencajonado (salida de calefacción)'))}</h3><p class="small">${esc(L('% de palox gardés = palox re-remplis ÷ palox décaissés. Total : ','% de palox conservados = palox rellenados ÷ palox vaciados. Total: ')+fmtN(ag.pRem)+' / '+fmtN(ag.pDec)+' = '+pct(ag.rate))}</p><div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Place dans la chambre','Lugar en la cámara'))}</th><th>${esc(L('Palox décaissés','Palox vaciados'))}</th><th>${esc(L('Palox re-remplis','Palox rellenados'))}</th><th>${esc(L('% gardé','% conservado'))}</th><th>${esc(L('Réussite au triage','Éxito en la selección'))}</th></tr></thead><tbody>${done.map(l=>{ const e=l.d, b=(lw.find(x=>x.lot===l.lot)||{}).b; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete)}</td><td>${esc(l.pg)}</td><td>${e.jour?'J'+e.jour:''}</td><td>${esc(e.place||'')}</td><td>${esc(fmtN(e.pDec))}</td><td>${esc(fmtN(e.pRem))}</td><td><b>${pct(decRate(e))}</b></td><td>${b?pct(bilanRate(b)):'—'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
+  const split=done.filter(l=>decFrigo(l.d));
+  return `${split.length?`<section><h3>${esc(L('Répartition frigo / acclimatation dehors','Repartición frigorífico / aclimatación afuera'))}</h3><div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Palox re-remplis','Palox rellenados'))}</th><th>${esc(L('Au frigo','Al frigorífico'))}</th><th>${esc(L('Dehors','Afuera'))}</th></tr></thead><tbody>${done.map(l=>`<tr><td>${esc(l.lot)}</td><td>${esc(fmtN(l.d.pRem))}</td><td>${esc(fmtN(decFrigo(l.d)))}</td><td>${esc(fmtN(decDehors(l.d)))}</td></tr>`).join('')}</tbody></table></div></section>`:''}<section><h3>${esc(L('Décaissage (sortie de chauffe)','Desencajonado (salida de calefacción)'))}</h3><p class="small">${esc(L('% de palox gardés = palox re-remplis ÷ palox décaissés. Total : ','% de palox conservados = palox rellenados ÷ palox vaciados. Total: ')+fmtN(ag.pRem)+' / '+fmtN(ag.pDec)+' = '+pct(ag.rate))}</p><div class="scrollx"><table><thead><tr><th>${esc(L('Lot','Lote'))}</th><th>${esc(L('Variété','Variedad'))}</th><th>${esc(L('Porte-greffe','Portainjerto'))}</th><th>${esc(L('Jour','Día'))}</th><th>${esc(L('Place dans la chambre','Lugar en la cámara'))}</th><th>${esc(L('Palox décaissés','Palox vaciados'))}</th><th>${esc(L('Palox re-remplis','Palox rellenados'))}</th><th>${esc(L('% gardé','% conservado'))}</th><th>${esc(L('Réussite au triage','Éxito en la selección'))}</th></tr></thead><tbody>${done.map(l=>{ const e=l.d, b=(lw.find(x=>x.lot===l.lot)||{}).b; return `<tr><td>${esc(l.lot)}</td><td>${esc(l.variete)}</td><td>${esc(l.pg)}</td><td>${e.jour?'J'+e.jour:''}</td><td>${esc(e.place||'')}</td><td>${esc(fmtN(e.pDec))}</td><td>${esc(fmtN(e.pRem))}</td><td><b>${pct(decRate(e))}</b></td><td>${b?pct(bilanRate(b)):'—'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
 }
 
 /* ----- Onglet Greffage : les lots de la chauffe et leurs infos de greffage ----- */
@@ -3475,7 +3530,7 @@ function phaseSummaries(ch){ const o={}; const lots=ch.lots||[]; const P=(a,b)=>
   const n=lastDay(ch); const cs=stepsOf(ch,'chauffe'); const al=chauffeAlerts(ch);
   o.chauffe=(n?'J'+n+' / '+ch.duree:L('pas encore commencée','todavía no empezada'))+' · '+plural(releves(ch.id).length,'relevé','relevés','lectura','lecturas')+(cs.length?' · '+L('étapes clés ','etapas clave ')+P(cs.filter(x=>x.date).length,cs.length):'')+(al?' · ⚠ '+plural(al,'alerte','alertes','alerta','alertas'):'');
   ['avant','apres'].forEach(ph=>{ const l=accList(ch).filter(X=>(X.phase||'avant')===ph); if(l.length) o[ph==='avant'?'accA':'accB']=l.map(X=>accName(ch,X)).join(', ')+' · '+L('depuis le ','desde el ')+isoFr(l[0].debut); });
-  const dl=decLots(ch), dd=dl.filter(l=>l.d); if(dd.length){ const ag=decAgg(dd); o.dec=P(dd.length,dl.length)+' '+L('lots décaissés','lotes desencajonados')+(ag.rate!=null?' · '+pct(ag.rate)+' '+L('de palox gardés','de palox conservados'):''); }
+  const dl=decLots(ch), dd=dl.filter(l=>l.d); if(dd.length){ const ag=decAgg(dd); const tf=dd.reduce((a,l)=>a+decFrigo(l.d),0); o.dec=P(dd.length,dl.length)+' '+L('lots décaissés','lotes desencajonados')+(ag.rate!=null?' · '+pct(ag.rate)+' '+L('de palox gardés','de palox conservados'):'')+(tf?' · '+fmtN(tf)+' '+L('palox au frigo','palox al frigorífico'):''); }
   { const F=frigoSum(ch), T=frigoTemps(ch).filter(r=>r.t!=null).map(r=>r.t); if(F.E.length||T.length) o.frigo=(F.E.length?F.inn.length+' '+L('palox au frigo','palox en el frigorífico')+' · '+F.out.length+' '+L('sortis','salidos'):'')+(T.length?(F.E.length?' · ':'')+fmtN(Math.min(...T))+' à '+fmtN(Math.max(...T))+' °C':''); }
   const pl=plLots(ch); if(pl.length||plOps(ch).length) o.plant=P(lots.filter(l=>plLotOf(ch,l.lot)).length,lots.length)+' '+L('lots plantés','lotes plantados')+' · '+plural(plOps(ch).length+plPhytos(ch).length,'intervention','interventions','intervención','intervenciones');
   const lw=lotsWithBilan(ch), ag=aggRate(lw), nb=lw.filter(l=>bilanRate(l.b)!=null).length; if(nb) o.triage=L('réussite ','éxito ')+pct(ag.rate)+' · '+P(nb,lw.length)+' '+L('lots triés','lotes seleccionados');
